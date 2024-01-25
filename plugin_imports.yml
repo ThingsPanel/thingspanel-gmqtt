@@ -1,0 +1,8 @@
+packages:
+  - admin
+  - prometheus
+  - federation
+  - auth
+  - thingspanel
+  # for external plugin, use full import path
+  # - github.com/DrmagicE/gmqtt/plugin/prometheus
