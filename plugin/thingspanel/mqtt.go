@@ -21,7 +21,7 @@ func (c *MqttClient) MqttInit() error {
 	opts.SetUsername("root")
 	password := viper.GetString("mqtt.password")
 	opts.SetPassword(password)
-	opts.AddBroker("localhost:1883")
+	opts.AddBroker("localhost:1886")
 	opts.SetAutoReconnect(true)
 	opts.SetOrderMatters(false)
 	//opts.OnConnectionLost = connectLostHandler
