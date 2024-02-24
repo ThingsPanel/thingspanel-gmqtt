@@ -4,7 +4,7 @@
 
 listeners:
   # bind address
-  - address: ":1883"
+  - address: ":1886"
 #    tls:
 #      cacert: "path_to_ca_cert_file"
 #      cert: "path_to_cert_file"
