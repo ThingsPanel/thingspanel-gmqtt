@@ -19,7 +19,7 @@ type Device struct {
 	ID             string     `gorm:"column:id;primaryKey;comment:Id" json:"id"`                                                         // Id
 	Name           *string    `gorm:"column:name;comment:设备名称" json:"name"`                                                              // 设备名称
 	DeviceType     int16      `gorm:"column:device_type;not null;default:1;comment:设备类型（1-直连设备 2-网关设备3-网关子设备）默认直连设备" json:"device_type"` // 设备类型（1-直连设备 2-网关设备3-网关子设备）默认直连设备
-	Token          string     `gorm:"column:token;not null;comment:凭证 默认自动生成" json:"token"`                                              // 凭证 默认自动生成
+	Voucher        string     `gorm:"column:voucher;not null;comment:凭证 默认自动生成" json:"voucher"`                                          // 凭证 默认自动生成
 	TenantID       string     `gorm:"column:tenant_id;not null;comment:租户id，外键，删除时阻止" json:"tenant_id"`                                  // 租户id，外键，删除时阻止
 	IsEnabled      string     `gorm:"column:is_enabled;not null;comment:启用/禁用 enabled-启用 disabled-禁用 默认禁用，激活后默认启用" json:"is_enabled"`    // 启用/禁用 enabled-启用 disabled-禁用 默认禁用，激活后默认启用
 	ActivateFlag   string     `gorm:"column:activate_flag;not null;comment:激活标志inactive-未激活 active-已激活" json:"activate_flag"`            // 激活标志inactive-未激活 active-已激活
@@ -30,7 +30,6 @@ type Device struct {
 	ParentID       *string    `gorm:"column:parent_id;comment:子设备的网关id" json:"parent_id"`                                                // 子设备的网关id
 	Protocol       *string    `gorm:"column:protocol;comment:通讯协议" json:"protocol"`                                                      // 通讯协议
 	Lable          *string    `gorm:"column:lable;comment:标签 单标签，英文逗号隔开" json:"lable"`                                                   // 标签 单标签，英文逗号隔开
-	Password       *string    `gorm:"column:password;comment:凭证密钥" json:"password"`                                                      // 凭证密钥
 	Location       *string    `gorm:"column:location;comment:地理位置" json:"location"`                                                      // 地理位置
 	SubDeviceAddr  *string    `gorm:"column:sub_device_addr;comment:子设备地址" json:"sub_device_addr"`                                       // 子设备地址
 	CurrentVersion *string    `gorm:"column:current_version;comment:当前固件版本" json:"current_version"`                                      // 当前固件版本
@@ -39,8 +38,8 @@ type Device struct {
 	Remark1        *string    `gorm:"column:remark1" json:"remark1"`
 	Remark2        *string    `gorm:"column:remark2" json:"remark2"`
 	Remark3        *string    `gorm:"column:remark3" json:"remark3"`
-	ScriptID       *string    `gorm:"column:script_id;comment:设备脚本id（暂不设置外键）" json:"script_id"`     // 设备脚本id（暂不设置外键）
-	TemplateID     *string    `gorm:"column:template_id;comment:设备模板id（暂不设置外键）" json:"template_id"` // 设备模板id（暂不设置外键）
+	DeviceConfigID *string    `gorm:"column:device_config_id;comment:设备配置id" json:"device_config_id"` // 设备配置id
+	BatchNumber    *string    `gorm:"column:batch_number;comment:批次号" json:"batch_number"`            // 批次号
 }
 
 func (Device) TableName() string {
@@ -154,7 +153,7 @@ func GetDeviceByToken(token string) (*Device, error) {
 	var device Device
 	deviceId := GetStr(token)
 	if deviceId == "" {
-		result := db.Model(&Device{}).Where("token = ?", token).First(&device)
+		result := db.Model(&Device{}).Where("voucher->'username' = ?", token).First(&device)
 		if result.Error != nil {
 			Log.Info(result.Error.Error())
 			return nil, result.Error

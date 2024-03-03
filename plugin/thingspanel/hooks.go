@@ -46,7 +46,14 @@ func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicA
 			Log.Warn(err.Error())
 			return err
 		}
-		password := *device.Password
+		//使用json解析device的voucher字段，取出密码
+		var voucher map[string]interface{}
+		err = json.Unmarshal([]byte(device.Voucher), &voucher)
+		if err != nil {
+			Log.Warn(err.Error())
+			return err
+		}
+		password := voucher["password"].(string)
 		if password != "" {
 			if password != string(req.Connect.Password) {
 				err := errors.New("password error;")
@@ -67,7 +74,11 @@ func (t *Thingspanel) OnConnectedWrapper(pre server.OnConnected) server.OnConnec
 		Log.Info("----------------------------------------")
 
 		if client.ClientOptions().Username != "root" {
-			jsonData := fmt.Sprintf(`{"accessToken":"%s","values":{"status":"1"}}`, client.ClientOptions().Username)
+			deviceId, err := GetDeviceByToken(client.ClientOptions().Username)
+			if err != nil {
+				Log.Warn(err.Error())
+			}
+			jsonData := fmt.Sprintf(`{"device_id":"%s","values":{"status":"1"}}`, deviceId.ID)
 			if err := DefaultMqttClient.SendData("device/status", []byte(jsonData)); err != nil {
 				Log.Warn("上报状态失败")
 			}
@@ -82,7 +93,11 @@ func (t *Thingspanel) OnClosedWrapper(pre server.OnClosed) server.OnClosed {
 		// username为客户端用户名
 		Log.Info("----------------------------------------")
 		if client.ClientOptions().Username != "root" {
-			jsonData := fmt.Sprintf(`{"accessToken":"%s","values":{"status":"0"}}`, client.ClientOptions().Username)
+			deviceId, err := GetDeviceByToken(client.ClientOptions().Username)
+			if err != nil {
+				Log.Warn(err.Error())
+			}
+			jsonData := fmt.Sprintf(`{"device_id":"%s","values":{"status":"0"}}`, deviceId.ID)
 			if err := DefaultMqttClient.SendData("device/status", []byte(jsonData)); err != nil {
 				Log.Warn("上报状态失败")
 			}
@@ -166,7 +181,7 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 		if err != nil {
 			return err
 		}
-		newMsgMap["device_id"] = deviceId
+		newMsgMap["device_id"] = deviceId.ID
 		newMsgMap["values"] = req.Message.Payload
 		newMsgJson, _ := json.Marshal(newMsgMap)
 		req.Message.Payload = newMsgJson
