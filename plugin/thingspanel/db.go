@@ -153,7 +153,7 @@ func GetDeviceByToken(token string) (*Device, error) {
 	var device Device
 	deviceId := GetStr(token)
 	if deviceId == "" {
-		result := db.Model(&Device{}).Where("voucher->'username' = ?", token).First(&device)
+		result := db.Model(&Device{}).Where("voucher like ?", fmt.Sprintf("%%%s%%", token)).First(&device)
 		if result.Error != nil {
 			Log.Info(result.Error.Error())
 			return nil, result.Error

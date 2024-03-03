@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/DrmagicE/gmqtt/server"
 	"github.com/spf13/viper"
@@ -46,19 +47,22 @@ func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicA
 			Log.Warn(err.Error())
 			return err
 		}
-		//使用json解析device的voucher字段，取出密码
-		var voucher map[string]interface{}
-		err = json.Unmarshal([]byte(device.Voucher), &voucher)
-		if err != nil {
-			Log.Warn(err.Error())
-			return err
-		}
-		password := voucher["password"].(string)
-		if password != "" {
-			if password != string(req.Connect.Password) {
-				err := errors.New("password error;")
+		// 如果voucher字段包含password，则需要校验密码
+		if strings.Contains(device.Voucher, "password") {
+			//使用json解析device的voucher字段，取出密码
+			var voucher map[string]interface{}
+			err = json.Unmarshal([]byte(device.Voucher), &voucher)
+			if err != nil {
 				Log.Warn(err.Error())
 				return err
+			}
+			password := voucher["password"].(string)
+			if password != "" {
+				if password != string(req.Connect.Password) {
+					err := errors.New("password error;")
+					Log.Warn(err.Error())
+					return err
+				}
 			}
 		}
 		return nil
