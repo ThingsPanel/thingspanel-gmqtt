@@ -94,7 +94,7 @@ persistence:
   # The redis configuration only take effect when type == redis.
   redis:
     # redis server address
-    addr: "39.98.176.26:6379"
+    addr: "47.115.213.71:6379"
     # the maximum number of idle connections in the redis connection pool.
     max_idle: 1000
     # the maximum number of connections allocated by the redis connection pool at a given time.

@@ -1,13 +1,13 @@
 db:
   redis:
     # redis 连接字符串
-    conn: 39.98.176.26:6379
+    conn: 47.115.213.71:6379
     # redis 数据库号
     db_num: 1
     # redis 密码
     password: "redis2022"
   psql:
-    psqladdr: "39.98.176.26"
+    psqladdr: "47.115.213.71"
     psqlport: 5432
     psqldb: irrigate
     psqluser: postgres
