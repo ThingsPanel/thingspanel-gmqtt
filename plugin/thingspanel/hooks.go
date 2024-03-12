@@ -69,7 +69,6 @@ func (t *Thingspanel) OnConnectedWrapper(pre server.OnConnected) server.OnConnec
 		// 主题：device/status
 		// 报文：{"token":username,"SYS_STATUS":"online"}
 		// username为客户端用户名
-		Log.Info("----------------------------------------")
 
 		if client.ClientOptions().Username != "root" {
 			deviceId := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
@@ -90,18 +89,16 @@ func (t *Thingspanel) OnClosedWrapper(pre server.OnClosed) server.OnClosed {
 		// 主题：device/status
 		// 报文：{"token":username,"SYS_STATUS":"offline"}
 		// username为客户端用户名
-		Log.Info("----------------------------------------")
 		if client.ClientOptions().Username != "root" {
-			deviceId, err := GetDeviceByVoucher(client.ClientOptions().Username)
-			if err != nil {
-				Log.Warn(err.Error())
+			deviceId := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
+			if deviceId == "" {
+				Log.Warn("设备ID不存在")
 				return
 			}
-			jsonData := fmt.Sprintf(`{"device_id":"%s","values":{"status":"0"}}`, deviceId.ID)
-			if err := DefaultMqttClient.SendData("device/status", []byte(jsonData)); err != nil {
+			if err := DefaultMqttClient.SendData("device/status/"+deviceId, []byte("0")); err != nil {
 				Log.Warn("上报状态失败")
-				return
 			}
+			Log.Info("发送设备状态成功")
 		}
 	}
 }
