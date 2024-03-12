@@ -149,18 +149,19 @@ func GetRedisForJsondata(key string, dest interface{}) error {
 
 // 通过token从redis中获取设备信息
 // 先从redis中获取设备id，如果没有则从数据库中获取设备信息，并将设备信息和token存入redis
-func GetDeviceByToken(token string) (*Device, error) {
+func GetDeviceByVoucher(voucher string) (*Device, error) {
 	var device Device
-	deviceId := GetStr(token)
+	deviceId := GetStr(voucher)
+	fmt.Println("deviceId:===================", deviceId)
 	if deviceId == "" {
-		result := db.Model(&Device{}).Where("voucher like ?", fmt.Sprintf("%%%s%%", token)).First(&device)
+		result := db.Model(&Device{}).Where("voucher = ?", voucher).First(&device)
 		if result.Error != nil {
 			Log.Info(result.Error.Error())
 			return nil, result.Error
 		}
 		// 修改token的时候，需要删除旧的token
 		// 将token存入redis
-		err := SetStr(token, device.ID, 0)
+		err := SetStr(voucher, device.ID, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -183,18 +184,16 @@ func GetDeviceByToken(token string) (*Device, error) {
 // GetDeviceById
 // 通过设备id从redis中获取设备信息
 // 先从redis中获取设备信息，如果没有则从数据库中获取设备信息，并将设备信息存入redis
-func GetDeviceById(deviceStr string) (*Device, error) {
+func GetDeviceById(deviceId string) (*Device, error) {
 	var device Device
-	if err := json.Unmarshal([]byte(deviceStr), &device); err != nil {
-		result := db.Model(&Device{}).Where("id = ?", device.ID).First(&device)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-		// 将设备信息存入redis
-		err = SetRedisForJsondata(deviceStr, device, 0)
-		if err != nil {
-			return nil, err
-		}
+	result := db.Model(&Device{}).Where("id = ?", deviceId).First(&device)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	// 将设备信息存入redis
+	err := SetRedisForJsondata(deviceId, device, 0)
+	if err != nil {
+		return nil, err
 	}
 	return &device, nil
 }

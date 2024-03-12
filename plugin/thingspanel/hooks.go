@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/DrmagicE/gmqtt/server"
 	"github.com/spf13/viper"
@@ -21,6 +20,7 @@ func (t *Thingspanel) HookWrapper() server.HookWrapper {
 	}
 }
 
+//
 func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicAuth {
 	return func(ctx context.Context, client server.Client, req *server.ConnectRequest) (err error) {
 		// 处理前一个插件的OnBasicAuth逻辑
@@ -42,29 +42,23 @@ func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicA
 		// ... 处理本插件的鉴权逻辑
 		Log.Info("鉴权Username：" + string(req.Connect.Username))
 		Log.Info("鉴权Password：" + string(req.Connect.Password))
-		device, err := GetDeviceByToken(string(req.Connect.Username))
+
+		// voucher是一个字符串，如果没有密码，voucher就是{"username":"xxx"}，如果有密码，voucher就是{"username":"xxx","password":"xxx"}
+		voucher := ""
+		if string(req.Connect.Password) != "" {
+			voucher = fmt.Sprintf(`{"username":"%s","password":"%s"}`, string(req.Connect.Username), string(req.Connect.Password))
+		} else {
+			voucher = fmt.Sprintf(`{"username":"%s"}`, string(req.Connect.Username))
+		}
+		fmt.Println("voucher:===================", voucher)
+		// 通过voucher验证设备
+		device, err := GetDeviceByVoucher(voucher)
 		if err != nil {
 			Log.Warn(err.Error())
 			return err
 		}
-		// 如果voucher字段包含password，则需要校验密码
-		if strings.Contains(device.Voucher, "password") {
-			//使用json解析device的voucher字段，取出密码
-			var voucher map[string]interface{}
-			err = json.Unmarshal([]byte(device.Voucher), &voucher)
-			if err != nil {
-				Log.Warn(err.Error())
-				return err
-			}
-			password := voucher["password"].(string)
-			if password != "" {
-				if password != string(req.Connect.Password) {
-					err := errors.New("password error;")
-					Log.Warn(err.Error())
-					return err
-				}
-			}
-		}
+		// mqtt客户端id必须唯一
+		SetStr("mqtt_clinet_id_"+string(req.Connect.ClientID), device.ID, 0)
 		return nil
 	}
 }
@@ -78,14 +72,15 @@ func (t *Thingspanel) OnConnectedWrapper(pre server.OnConnected) server.OnConnec
 		Log.Info("----------------------------------------")
 
 		if client.ClientOptions().Username != "root" {
-			deviceId, err := GetDeviceByToken(client.ClientOptions().Username)
-			if err != nil {
-				Log.Warn(err.Error())
+			deviceId := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
+			if deviceId == "" {
+				Log.Warn("设备ID不存在")
+				return
 			}
-			jsonData := fmt.Sprintf(`{"device_id":"%s","values":{"status":"1"}}`, deviceId.ID)
-			if err := DefaultMqttClient.SendData("device/status", []byte(jsonData)); err != nil {
+			if err := DefaultMqttClient.SendData("device/status/"+deviceId, []byte("1")); err != nil {
 				Log.Warn("上报状态失败")
 			}
+			Log.Info("发送设备状态成功")
 		}
 	}
 }
@@ -97,13 +92,15 @@ func (t *Thingspanel) OnClosedWrapper(pre server.OnClosed) server.OnClosed {
 		// username为客户端用户名
 		Log.Info("----------------------------------------")
 		if client.ClientOptions().Username != "root" {
-			deviceId, err := GetDeviceByToken(client.ClientOptions().Username)
+			deviceId, err := GetDeviceByVoucher(client.ClientOptions().Username)
 			if err != nil {
 				Log.Warn(err.Error())
+				return
 			}
 			jsonData := fmt.Sprintf(`{"device_id":"%s","values":{"status":"0"}}`, deviceId.ID)
 			if err := DefaultMqttClient.SendData("device/status", []byte(jsonData)); err != nil {
 				Log.Warn("上报状态失败")
+				return
 			}
 		}
 	}
@@ -181,7 +178,7 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 
 		// 消息重写
 		newMsgMap := make(map[string]interface{})
-		deviceId, err := GetDeviceByToken(username)
+		deviceId, err := GetDeviceByVoucher(username)
 		if err != nil {
 			return err
 		}
