@@ -180,18 +180,18 @@ func GetDeviceByToken(token string) (*Device, error) {
 	return &device, nil
 }
 
+// GetDeviceById
 // 通过设备id从redis中获取设备信息
 // 先从redis中获取设备信息，如果没有则从数据库中获取设备信息，并将设备信息存入redis
-func GetDeviceById(deviceId string) (*Device, error) {
+func GetDeviceById(deviceStr string) (*Device, error) {
 	var device Device
-	err := GetRedisForJsondata(deviceId, &device)
-	if err != nil {
-		result := db.Model(&Device{}).Where("id = ?", deviceId).First(&device)
+	if err := json.Unmarshal([]byte(deviceStr), &device); err != nil {
+		result := db.Model(&Device{}).Where("id = ?", device.ID).First(&device)
 		if result.Error != nil {
 			return nil, result.Error
 		}
 		// 将设备信息存入redis
-		err = SetRedisForJsondata(deviceId, device, 0)
+		err = SetRedisForJsondata(deviceStr, device, 0)
 		if err != nil {
 			return nil, err
 		}
