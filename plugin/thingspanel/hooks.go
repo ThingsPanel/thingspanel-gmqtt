@@ -50,7 +50,6 @@ func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicA
 		} else {
 			voucher = fmt.Sprintf(`{"username":"%s"}`, string(req.Connect.Username))
 		}
-		fmt.Println("voucher:===================", voucher)
 		// 通过voucher验证设备
 		device, err := GetDeviceByVoucher(voucher)
 		if err != nil {
@@ -175,11 +174,11 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 
 		// 消息重写
 		newMsgMap := make(map[string]interface{})
-		deviceId, err := GetDeviceByVoucher(username)
+		deviceId := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
 		if err != nil {
 			return err
 		}
-		newMsgMap["device_id"] = deviceId.ID
+		newMsgMap["device_id"] = deviceId
 		newMsgMap["values"] = req.Message.Payload
 		newMsgJson, _ := json.Marshal(newMsgMap)
 		req.Message.Payload = newMsgJson

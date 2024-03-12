@@ -152,7 +152,6 @@ func GetRedisForJsondata(key string, dest interface{}) error {
 func GetDeviceByVoucher(voucher string) (*Device, error) {
 	var device Device
 	deviceId := GetStr(voucher)
-	fmt.Println("deviceId:===================", deviceId)
 	if deviceId == "" {
 		result := db.Model(&Device{}).Where("voucher = ?", voucher).First(&device)
 		if result.Error != nil {
