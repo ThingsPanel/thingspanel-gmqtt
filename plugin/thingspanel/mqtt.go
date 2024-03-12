@@ -49,6 +49,11 @@ func (c *MqttClient) MqttInit() error {
 }
 
 func (c *MqttClient) SendData(topic string, data []byte) error {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("【SendData】异常捕捉：", err)
+		}
+	}()
 	go func() {
 		Log.Info("检查MqttClIent连接状态...")
 		if !c.IsFlag {
