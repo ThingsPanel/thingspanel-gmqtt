@@ -52,6 +52,7 @@ func (c *MqttClient) SendData(topic string, data []byte) error {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println("【SendData】异常捕捉：", err)
+			return
 		}
 	}()
 	go func() {
