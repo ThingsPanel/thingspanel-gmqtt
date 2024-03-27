@@ -161,10 +161,10 @@ plugin_order:
   # - auth
   - prometheus
   - admin
-  - federation
+  #- federation
   - thingspanel
 log:
-  level: warn # debug | info | warn | error
+  level: debug # debug | info | warn | error
   format: text # json | text
   # whether to dump MQTT packet in debug level
   dump_packet: false
