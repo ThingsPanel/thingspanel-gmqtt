@@ -160,9 +160,9 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 		flag := false
 		var pub_list = []string{
 			"devices/telemetry",   //遥测上报
-			"device/attributes",   //属性上报
-			"device/event",        //事件上报
-			"device/command",      //命令下发
+			"devices/attributes",  //属性上报
+			"devices/event",       //事件上报
+			"devices/command",     //命令下发
 			"gateway/attributes",  //网关属性上报
 			"gateway/event",       //网关事件上报
 			"gateway/command",     //网关命令调用
@@ -174,10 +174,11 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 				flag = true
 			}
 		}
-		if !flag {
-			err := errors.New("permission denied;")
-			return err
-		}
+		fmt.Println(flag)
+		// if !flag {
+		// 	err := errors.New("permission denied;")
+		// 	return err
+		// }
 
 		// 消息重写
 		newMsgMap := make(map[string]interface{})
