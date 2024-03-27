@@ -158,9 +158,9 @@ plugins:
 # plugin loading orders
 plugin_order:
   # Uncomment auth to enable authentication.
-  # - auth
-  - prometheus
-  - admin
+  #- auth
+  #- prometheus
+  #- admin
   #- federation
   - thingspanel
 log:

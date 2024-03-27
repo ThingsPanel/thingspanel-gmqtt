@@ -23,7 +23,7 @@ func (t *Thingspanel) HookWrapper() server.HookWrapper {
 //
 func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicAuth {
 	return func(ctx context.Context, client server.Client, req *server.ConnectRequest) (err error) {
-		// 处理前一个插件的OnBasicAuth逻辑
+		//处理前一个插件的OnBasicAuth逻辑
 		err = pre(ctx, client, req)
 		if err != nil {
 			Log.Error(err.Error())
@@ -51,13 +51,20 @@ func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicA
 			voucher = fmt.Sprintf(`{"username":"%s"}`, string(req.Connect.Username))
 		}
 		// 通过voucher验证设备
+		Log.Debug("voucher: " + voucher)
 		device, err := GetDeviceByVoucher(voucher)
 		if err != nil {
 			Log.Warn(err.Error())
 			return err
 		}
+		Log.Info("设备Voucher：" + device.Voucher)
+		Log.Info("ClientID：" + string(req.Connect.ClientID))
 		// mqtt客户端id必须唯一
-		SetStr("mqtt_clinet_id_"+string(req.Connect.ClientID), device.ID, 0)
+		err = SetStr("mqtt_clinet_id_"+string(req.Connect.ClientID), device.ID, 0)
+		if err != nil {
+			Log.Warn(err.Error())
+			return err
+		}
 		return nil
 	}
 }
