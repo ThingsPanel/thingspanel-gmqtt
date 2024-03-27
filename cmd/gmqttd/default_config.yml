@@ -30,7 +30,7 @@ api:
 #        key: "path_to_key_file"
   http:
       # The HTTP server listen address. This is a reverse-proxy server in front of gRPC server.
-    - address: "tcp://0.0.0.0:8083"
+    - address: "tcp://127.0.0.1:8083"
       map: "tcp://127.0.0.1:8084" # The backend gRPC server endpoint,
 #      tls:
 #        cacert: "path_to_ca_cert_file"
@@ -90,7 +90,7 @@ mqtt:
   allow_zero_length_clientid: false
 
 persistence:
-  type: redis  # memory | redis
+  type: memory  # memory | redis
   # The redis configuration only take effect when type == redis.
   redis:
     # redis server address
