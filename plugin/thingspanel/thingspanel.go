@@ -60,6 +60,7 @@ func (t *Thingspanel) Name() string {
 	return Name
 }
 
+// 不用
 func (t *Thingspanel) UpdateStatus(accessToken string, status string) {
 	url := "/api/device/status"
 	method := "POST"

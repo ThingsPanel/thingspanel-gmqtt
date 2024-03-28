@@ -82,7 +82,7 @@ func (t *Thingspanel) OnConnectedWrapper(pre server.OnConnected) server.OnConnec
 				Log.Warn("设备ID不存在")
 				return
 			}
-			if err := DefaultMqttClient.SendData("device/status/"+deviceId, []byte("1")); err != nil {
+			if err := DefaultMqttClient.SendData("devices/status/"+deviceId, []byte("1")); err != nil {
 				Log.Warn("上报状态失败")
 			}
 			Log.Info("发送设备状态成功")
@@ -101,7 +101,7 @@ func (t *Thingspanel) OnClosedWrapper(pre server.OnClosed) server.OnClosed {
 				Log.Warn("设备ID不存在")
 				return
 			}
-			if err := DefaultMqttClient.SendData("device/status/"+deviceId, []byte("0")); err != nil {
+			if err := DefaultMqttClient.SendData("devices/status/"+deviceId, []byte("0")); err != nil {
 				Log.Warn("上报状态失败")
 			}
 			Log.Info("发送设备状态成功")
