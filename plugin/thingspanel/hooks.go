@@ -39,6 +39,16 @@ func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicA
 				return err
 			}
 		}
+		if string(req.Connect.Username) == "plugin" {
+			password := viper.GetString("mqtt.plugin_password")
+			if string(req.Connect.Password) == password {
+				return nil
+			} else {
+				err := errors.New("password error;")
+				Log.Warn(err.Error())
+				return err
+			}
+		}
 		// ... 处理本插件的鉴权逻辑
 		Log.Info("鉴权Username：" + string(req.Connect.Username))
 		Log.Info("鉴权Password：" + string(req.Connect.Password))
@@ -76,7 +86,7 @@ func (t *Thingspanel) OnConnectedWrapper(pre server.OnConnected) server.OnConnec
 		// 报文：{"token":username,"SYS_STATUS":"online"}
 		// username为客户端用户名
 
-		if client.ClientOptions().Username != "root" {
+		if client.ClientOptions().Username != "root" && client.ClientOptions().Username != "plugin" {
 			deviceId := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
 			if deviceId == "" {
 				Log.Warn("设备ID不存在")
@@ -95,7 +105,7 @@ func (t *Thingspanel) OnClosedWrapper(pre server.OnClosed) server.OnClosed {
 		// 主题：device/status
 		// 报文：{"token":username,"SYS_STATUS":"offline"}
 		// username为客户端用户名
-		if client.ClientOptions().Username != "root" {
+		if client.ClientOptions().Username != "root" || client.ClientOptions().Username != "plugin" {
 			deviceId := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
 			if deviceId == "" {
 				Log.Warn("设备ID不存在")
@@ -151,7 +161,7 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 	return func(ctx context.Context, client server.Client, req *server.MsgArrivedRequest) (err error) {
 		username := client.ClientOptions().Username
 		// root用户放行
-		if username == "root" {
+		if username == "root" || username == "plugin" {
 			RootMessageForwardWrapper(req.Message.Topic, req.Message.Payload, false)
 			return nil
 		}
@@ -179,6 +189,10 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 		// 	err := errors.New("permission denied;")
 		// 	return err
 		// }
+		// 如果后三位是/up，通过
+		if the_pub[len(the_pub)-3:] == "/up" {
+			return nil
+		}
 
 		// 消息重写
 		newMsgMap := make(map[string]interface{})
