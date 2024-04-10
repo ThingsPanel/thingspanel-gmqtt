@@ -107,9 +107,12 @@ func SetStr(key, value string, time time.Duration) (err error) {
 	return err
 }
 
-func GetStr(key string) (value string) {
-	v, _ := redisCache.Get(key).Result()
-	return v
+func GetStr(key string) (value string, err error) {
+	v, err := redisCache.Get(key).Result()
+	if err != nil {
+		return "", err
+	}
+	return v, nil
 }
 
 func DelKey(key string) (err error) {
@@ -151,7 +154,7 @@ func GetRedisForJsondata(key string, dest interface{}) error {
 // 先从redis中获取设备id，如果没有则从数据库中获取设备信息，并将设备信息和token存入redis
 func GetDeviceByVoucher(voucher string) (*Device, error) {
 	var device Device
-	deviceId := GetStr(voucher)
+	deviceId, _ := GetStr(voucher)
 	Log.Debug("缓存的deviceId值: " + deviceId)
 	if deviceId == "" {
 		result := db.Model(&Device{}).Where("voucher = ?", voucher).First(&device)

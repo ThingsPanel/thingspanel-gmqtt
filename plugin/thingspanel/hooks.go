@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/DrmagicE/gmqtt/plugin/thingspanel/util"
 	"github.com/DrmagicE/gmqtt/server"
 	"github.com/spf13/viper"
 )
@@ -20,7 +21,6 @@ func (t *Thingspanel) HookWrapper() server.HookWrapper {
 	}
 }
 
-//
 func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicAuth {
 	return func(ctx context.Context, client server.Client, req *server.ConnectRequest) (err error) {
 		//处理前一个插件的OnBasicAuth逻辑
@@ -87,7 +87,11 @@ func (t *Thingspanel) OnConnectedWrapper(pre server.OnConnected) server.OnConnec
 		// username为客户端用户名
 
 		if client.ClientOptions().Username != "root" && client.ClientOptions().Username != "plugin" {
-			deviceId := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
+			deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
+			if err != nil {
+				Log.Warn("获取设备ID失败")
+				return
+			}
 			if deviceId == "" {
 				Log.Warn("设备ID不存在")
 				return
@@ -106,7 +110,11 @@ func (t *Thingspanel) OnClosedWrapper(pre server.OnClosed) server.OnClosed {
 		// 报文：{"token":username,"SYS_STATUS":"offline"}
 		// username为客户端用户名
 		if client.ClientOptions().Username != "root" || client.ClientOptions().Username != "plugin" {
-			deviceId := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
+			deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
+			if err != nil {
+				Log.Warn("获取设备ID失败")
+				return
+			}
 			if deviceId == "" {
 				Log.Warn("设备ID不存在")
 				return
@@ -124,35 +132,15 @@ func (t *Thingspanel) OnSubscribeWrapper(pre server.OnSubscribe) server.OnSubscr
 	return func(ctx context.Context, client server.Client, req *server.SubscribeRequest) error {
 		username := client.ClientOptions().Username
 		//root放行
-		if username == "root" {
+		if username == "root" || username == "plugin" {
 			return nil
 		}
-		// ... 只允许sub_list中的主题可以被订阅
-		// the_sub := req.Subscribe.Topics[0].Name
-		// if err := OtherOnSubscribeWrapper(the_sub, username); err == nil {
-		// 	return nil
-		// }
-		// flag := false
-		// var sub_list = []string{
-		// 	"device/attributes/",
-		// 	"device/event/",
-		// 	"device/command/",
-		// 	"gateway/attributes/",
-		// 	"gateway/event/",
-		// 	"gateway/command/",
-		// 	"attributes/relaying/",
-		// 	"ota/device/inform/",
-		// }
-		// for _, sub := range sub_list {
-		// 	if the_sub == sub+string(username) {
-		// 		flag = true
-		// 	}
-		// }
-		// if flag {
-		// 	return nil
-		// } else {
-		// 	return fmt.Errorf("permission denied")
-		// }
+
+		the_sub := req.Subscribe.Topics[0].Name
+		// 验证设备的订阅权限
+		if !util.ValidateSubTopic(the_sub) {
+			return errors.New("permission denied")
+		}
 		return nil
 	}
 }
@@ -160,43 +148,20 @@ func (t *Thingspanel) OnSubscribeWrapper(pre server.OnSubscribe) server.OnSubscr
 func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgArrived {
 	return func(ctx context.Context, client server.Client, req *server.MsgArrivedRequest) (err error) {
 		username := client.ClientOptions().Username
-		// root用户放行
+		// root用户和插件用户直接转发
 		if username == "root" || username == "plugin" {
 			RootMessageForwardWrapper(req.Message.Topic, req.Message.Payload, false)
 			return nil
 		}
-		// ... 只允许sub_list中的主题可以发布
-		the_pub := string(req.Publish.TopicName)
-		flag := false
-		var pub_list = []string{
-			"devices/telemetry",   //遥测上报
-			"devices/attributes",  //属性上报
-			"devices/event",       //事件上报
-			"devices/command",     //命令下发
-			"gateway/attributes",  //网关属性上报
-			"gateway/event",       //网关事件上报
-			"gateway/command",     //网关命令调用
-			"ota/device/inform",   //设备升级通知
-			"ota/device/progress", //设备升级进度
-		}
-		for _, pub := range pub_list {
-			if the_pub == pub {
-				flag = true
-			}
-		}
-		fmt.Println(flag)
-		// if !flag {
-		// 	err := errors.New("permission denied;")
-		// 	return err
-		// }
-		// 如果后三位是/up，通过
-		if the_pub[len(the_pub)-3:] == "/up" {
-			return nil
-		}
 
+		the_pub := string(req.Publish.TopicName)
+		// 验证设备的发布权限
+		if !util.ValidateTopic(the_pub) {
+			return errors.New("permission denied")
+		}
 		// 消息重写
 		newMsgMap := make(map[string]interface{})
-		deviceId := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
+		deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
 		if err != nil {
 			return err
 		}

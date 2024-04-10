@@ -5,7 +5,6 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/pborman/uuid"
 	"github.com/spf13/viper"
 )
 
@@ -22,28 +21,26 @@ func (c *MqttClient) MqttInit() error {
 	password := viper.GetString("mqtt.password")
 	opts.SetPassword(password)
 	opts.AddBroker("localhost:1883")
+	// 干净会话
+	opts.SetCleanSession(true)
+	// 失败重连
 	opts.SetAutoReconnect(true)
-	opts.SetOrderMatters(false)
+	opts.SetConnectRetryInterval(1 * time.Second)   // 初始连接重试间隔
+	opts.SetMaxReconnectInterval(200 * time.Second) // 丢失连接后的最大重试间隔
+
+	opts.SetOrderMatters(false) //设置消息的顺序
 	//opts.OnConnectionLost = connectLostHandler
 	opts.SetOnConnectHandler(func(c mqtt.Client) {
 		fmt.Println("Mqtt客户端已连接")
 	})
-	reconnec_number := 0
-	uuid := uuid.New()
-	opts.SetClientID(uuid)
-	for { // 失败重连
-
-		c.Client = mqtt.NewClient(opts)
-		if token := c.Client.Connect(); token.Wait() && token.Error() != nil {
-			reconnec_number++
-			fmt.Println("错误说明：", token.Error().Error())
-			fmt.Println("Mqtt客户端连接失败...重试", reconnec_number)
-		} else {
-			fmt.Println("Mqtt客户端重连成功")
-			c.IsFlag = true
-			break
-		}
-		time.Sleep(5 * time.Second)
+	opts.SetClientID("thingspanel-gmqtt-client")
+	c.Client = mqtt.NewClient(opts)
+	// 等待连接成功
+	if token := c.Client.Connect(); token.Wait() && token.Error() != nil {
+		fmt.Println("Mqtt客户端连接失败：", token.Error())
+	} else {
+		fmt.Println("Mqtt客户端连接成功")
+		c.IsFlag = true
 	}
 	return nil
 }
