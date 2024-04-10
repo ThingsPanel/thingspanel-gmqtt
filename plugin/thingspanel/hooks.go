@@ -159,6 +159,12 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 		if !util.ValidateTopic(the_pub) {
 			return errors.New("permission denied")
 		}
+
+		// 后三位是/up的主题直接方放行【Mindjoy-MW】
+		if the_pub[len(the_pub)-3:] == "/up" {
+			return nil
+		}
+
 		// 消息重写
 		newMsgMap := make(map[string]interface{})
 		deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
