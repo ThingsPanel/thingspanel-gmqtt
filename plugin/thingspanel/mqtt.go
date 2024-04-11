@@ -36,11 +36,16 @@ func (c *MqttClient) MqttInit() error {
 	opts.SetClientID("thingspanel-gmqtt-client")
 	c.Client = mqtt.NewClient(opts)
 	// 等待连接成功
-	if token := c.Client.Connect(); token.Wait() && token.Error() != nil {
-		fmt.Println("Mqtt客户端连接失败：", token.Error())
-	} else {
-		fmt.Println("Mqtt客户端连接成功")
-		c.IsFlag = true
+	// 等待连接成功
+	for {
+		if token := c.Client.Connect(); token.Wait() && token.Error() != nil {
+			fmt.Println("Mqtt客户端连接失败，等待重连...")
+			time.Sleep(1 * time.Second)
+		} else {
+			fmt.Println("Mqtt客户端连接成功")
+			c.IsFlag = true
+			break
+		}
 	}
 	return nil
 }

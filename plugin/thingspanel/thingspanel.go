@@ -38,7 +38,6 @@ func init() {
 }
 
 func New(config config.Config) (server.Plugin, error) {
-	log.Println("--------------------------------------")
 	//panic("implement me")
 	return &Thingspanel{}, nil
 }
