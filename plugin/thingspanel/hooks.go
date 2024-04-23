@@ -148,6 +148,7 @@ func (t *Thingspanel) OnSubscribeWrapper(pre server.OnSubscribe) server.OnSubscr
 func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgArrived {
 	return func(ctx context.Context, client server.Client, req *server.MsgArrivedRequest) (err error) {
 		username := client.ClientOptions().Username
+		Log.Info(fmt.Sprintf("OnMsgArrivedWrapper: username %s payload %s", username, string(req.Message.Payload)))
 		// root用户和插件用户直接转发
 		if username == "root" || username == "plugin" {
 			RootMessageForwardWrapper(req.Message.Topic, req.Message.Payload, false)
