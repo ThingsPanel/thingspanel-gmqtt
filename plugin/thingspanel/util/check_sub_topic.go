@@ -12,8 +12,15 @@ var subList = []string{
 
 	"ota/devices/infrom/{device_number}", //接收升级任务（固件升级相关）
 
-	"evices/attributes/response/{device_number}/+", //订阅平台收到属性的响应
-	"devices/event/response/{device_number}/+",     //接收平台收到事件的响应
+	"devices/attributes/response/{device_number}/+", //订阅平台收到属性的响应
+	"devices/event/response/{device_number}/+",      //接收平台收到事件的响应
+
+	"gateway/telemetry/{device_number}/+",           //订阅平台下发的控制(网关)
+	"gateway/attributes/set/{device_number}/+",      //订阅平台下发的属性设置(网关)
+	"gateway/attributes/get/{device_number}",        //订阅平台对属性的请求(网关)
+	"gateway/command/{device_number}/+",             //订阅命令(网关)
+	"gateway/attributes/response/{device_number}/+", //订阅平台收到属性的响应(网关)
+	"gateway/event/response/{device_number}/+",      //接收平台收到事件的响应(网关)
 
 	"{device_number}/down", //心智悦喷淋一体机下行数据
 }
