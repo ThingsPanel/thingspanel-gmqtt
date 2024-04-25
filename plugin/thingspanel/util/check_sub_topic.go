@@ -5,11 +5,11 @@ import (
 )
 
 var subList = []string{
-	"devices/telemetry/set/{device_number}",    //订阅平台下发的控制
-	"devices/telemetry/set/{device_number}/+",  //订阅平台下发的控制
-	"devices/attributes/set/{device_number}/+", //订阅平台下发的属性设置
-	"devices/attributes/get/{device_number}",   //订阅平台对属性的请求
-	"devices/command/{device_number}/+",        //订阅命令
+	"devices/telemetry/control/{device_number}",   //订阅平台下发的控制
+	"devices/telemetry/control/{device_number}/+", //订阅平台下发的控制
+	"devices/attributes/set/{device_number}/+",    //订阅平台下发的属性设置
+	"devices/attributes/get/{device_number}",      //订阅平台对属性的请求
+	"devices/command/{device_number}/+",           //订阅命令
 
 	"ota/devices/infrom/{device_number}", //接收升级任务（固件升级相关）
 
