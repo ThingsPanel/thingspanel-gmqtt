@@ -6,14 +6,14 @@ import (
 
 // 物联网设备主题规则列表
 var pubList = []string{
-	"devices/telemetry",                 // 遥测上报
+	"devices/telemetry/control",         // 遥测上报
 	"devices/attributes/+",              // 属性上报
 	"devices/event/+",                   // 事件上报
 	"ota/device/progress",               // 设备升级进度更新
 	"devices/attributes/set/response/+", // 属性设置响应上报
 	"devices/command/response/+",        // 命令响应上报
 
-	"gateway/telemetry",                 // 设备遥测（网关）
+	"gateway/telemetry/control",         // 设备遥测（网关）
 	"gateway/attributes/+",              // 属性上报 （网关）
 	"gateway/event/+",                   // 事件上报 （网关）
 	"gateway/attributes/set/response/+", // 属性设置响应上报 （网关）
