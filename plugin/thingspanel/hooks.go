@@ -139,8 +139,10 @@ func (t *Thingspanel) OnSubscribeWrapper(pre server.OnSubscribe) server.OnSubscr
 		the_sub := req.Subscribe.Topics[0].Name
 		// 验证设备的订阅权限
 		if !util.ValidateSubTopic(the_sub) {
+			Log.Warn("订阅权限验证失败: " + the_sub)
 			return errors.New("permission denied")
 		}
+		Log.Info("订阅权限验证成功: " + the_sub)
 		return nil
 	}
 }
