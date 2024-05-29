@@ -20,7 +20,8 @@ func (c *MqttClient) MqttInit() error {
 	opts.SetUsername("root")
 	password := viper.GetString("mqtt.password")
 	opts.SetPassword(password)
-	opts.AddBroker("localhost:1883")
+	addr := viper.GetString("mqtt.broker")
+	opts.AddBroker(addr)
 	// 干净会话
 	opts.SetCleanSession(true)
 	// 失败重连

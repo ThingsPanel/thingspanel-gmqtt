@@ -14,5 +14,6 @@ db:
     psqlpass: ThingsPanel2023
 mqtt:
   # root用户的密码
+  broker: localhost:1883
   password: "root"
   plugin_password: "plugin"
