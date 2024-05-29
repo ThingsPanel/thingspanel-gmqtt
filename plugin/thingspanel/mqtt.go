@@ -21,6 +21,9 @@ func (c *MqttClient) MqttInit() error {
 	password := viper.GetString("mqtt.password")
 	opts.SetPassword(password)
 	addr := viper.GetString("mqtt.broker")
+	if addr == "" {
+		addr = "localhost:1883"
+	}
 	opts.AddBroker(addr)
 	// 干净会话
 	opts.SetCleanSession(true)
@@ -40,7 +43,7 @@ func (c *MqttClient) MqttInit() error {
 	// 等待连接成功
 	for {
 		if token := c.Client.Connect(); token.Wait() && token.Error() != nil {
-			fmt.Println("Mqtt客户端连接失败，等待重连...")
+			fmt.Println("Mqtt客户端连接失败(", addr, ")，等待重连...")
 			time.Sleep(1 * time.Second)
 		} else {
 			fmt.Println("Mqtt客户端连接成功")
