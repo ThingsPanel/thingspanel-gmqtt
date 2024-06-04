@@ -1,17 +1,17 @@
 db:
   redis:
     # redis 连接字符串
-    conn: 47.115.213.71:6379
+    conn: 127.0.0.1:6379
     # redis 数据库号
     db_num: 1
     # redis 密码
-    password: "redis2022"
+    password: "redis"
   psql:
-    psqladdr: "47.115.213.71"
+    psqladdr: "127.0.0.1"
     psqlport: 5432
-    psqldb: irrigate
+    psqldb: ThingsPanel
     psqluser: postgres
-    psqlpass: ThingsPanel2023
+    psqlpass: postgresThingsPanel
 mqtt:
   # root用户的密码
   broker: localhost:1883
