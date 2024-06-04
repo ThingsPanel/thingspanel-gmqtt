@@ -1,0 +1,1 @@
+go run . start -c default_config.yaml
