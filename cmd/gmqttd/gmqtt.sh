@@ -1,1 +1,1 @@
-go run . start -c default_config.yaml
+go run . start -c default_config.yml
