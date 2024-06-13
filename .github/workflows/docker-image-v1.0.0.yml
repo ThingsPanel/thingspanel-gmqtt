@@ -33,4 +33,4 @@ jobs:
         
     - name: Use Skopeo Tools Sync Image to Aliyuncs Docker Hub
       run: |
-         skopeo copy docker://docker.io/thingspanel/thingspanel-go:v1.0.0 docker://registry.cn-hangzhou.aliyuncs.com/thingspanel/thingspanel-go:v1.0.0
+         skopeo copy docker://docker.io/thingspanel/thingspanel-gmqtt:v1.0.0 docker://registry.cn-hangzhou.aliyuncs.com/thingspanel/thingspanel-gmqtt:v1.0.0
