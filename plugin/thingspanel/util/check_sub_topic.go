@@ -25,6 +25,9 @@ var subList = []string{
 	"gateway/event/response/{device_number}/+",      //接收平台收到事件的响应(网关)
 
 	"{device_number}/down", //心智悦喷淋一体机下行数据
+
+	"devices/register/response/+",    //网关子设备注册平台回复
+	"devices/config/down/response/+", //设备配置下载平台回复
 }
 
 // ValidateTopic 检查一个主题是否符合subList里的任何一种模式

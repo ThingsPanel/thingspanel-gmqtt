@@ -19,6 +19,9 @@ var pubList = []string{
 	"gateway/attributes/set/response/+", // 属性设置响应上报 （网关）
 	"gateway/command/response/+",        // 命令响应上报 （网关）
 
+	"devices/register",    //网关子设备注册
+	"devices/config/down", //设备配置下载
+
 	"+/up", //心智悦喷淋一体机上行数据
 }
 
