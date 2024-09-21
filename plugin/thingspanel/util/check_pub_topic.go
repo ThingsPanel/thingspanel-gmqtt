@@ -9,7 +9,7 @@ var pubList = []string{
 	"devices/telemetry",                 // 遥测上报
 	"devices/attributes/+",              // 属性上报
 	"devices/event/+",                   // 事件上报
-	"ota/device/progress",               // 设备升级进度更新
+	"ota/devices/progress",               // 设备升级进度更新
 	"devices/attributes/set/response/+", // 属性设置响应上报
 	"devices/command/response/+",        // 命令响应上报
 
