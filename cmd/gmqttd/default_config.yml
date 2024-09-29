@@ -94,7 +94,8 @@ persistence:
   # The redis configuration only take effect when type == redis.
   redis:
     # redis server address
-    addr: "47.115.213.71:6379"
+    #addr: "47.115.213.71:6379"
+    addr: "127.0.0.1:6379"
     # the maximum number of idle connections in the redis connection pool.
     max_idle: 1000
     # the maximum number of connections allocated by the redis connection pool at a given time.
@@ -102,7 +103,7 @@ persistence:
     max_active: 0
     # the connection idle timeout, connection will be closed after remaining idle for this duration. If the value is zero, then idle connections are not closed.
     idle_timeout: 240s
-    password: "redis2022"
+    #password: "redis2022"
     # the number of the redis database.
     database: 2
 

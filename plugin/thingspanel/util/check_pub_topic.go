@@ -9,7 +9,7 @@ var pubList = []string{
 	"devices/telemetry",                 // 遥测上报
 	"devices/attributes/+",              // 属性上报
 	"devices/event/+",                   // 事件上报
-	"ota/device/progress",               // 设备升级进度更新
+	"ota/devices/progress",               // 设备升级进度更新
 	"devices/attributes/set/response/+", // 属性设置响应上报
 	"devices/command/response/+",        // 命令响应上报
 
@@ -18,6 +18,9 @@ var pubList = []string{
 	"gateway/event/+",                   // 事件上报 （网关）
 	"gateway/attributes/set/response/+", // 属性设置响应上报 （网关）
 	"gateway/command/response/+",        // 命令响应上报 （网关）
+
+	"devices/register",    //网关子设备注册
+	"devices/config/down", //设备配置下载
 
 	"+/up", //心智悦喷淋一体机上行数据
 }

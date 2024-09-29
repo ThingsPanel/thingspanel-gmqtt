@@ -7,11 +7,21 @@ db:
     # redis 密码
     password: "redis"
   psql:
+#    psqladdr: "127.0.0.1"
+#    psqladdr: "47.251.45.205"
+#    psqlport: 5432
+#    psqldb: irrigate
+#    psqluser: postgres
+#    psqlpass: postgresThingsPanel2022
+
+    #社区版
+#    psqladdr: "47.92.253.145"
     psqladdr: "127.0.0.1"
-    psqlport: 5432
+    psqlport: 5432 # 默认5432
     psqldb: ThingsPanel
     psqluser: postgres
     psqlpass: postgresThingsPanel
+
 mqtt:
   # root用户的密码
   broker: localhost:1883

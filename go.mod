@@ -18,7 +18,6 @@ require (
 	github.com/iancoleman/strcase v0.1.2
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.30.0 // indirect
-	github.com/pborman/uuid v1.2.1
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.4.0
 	github.com/spf13/cobra v1.0.0
