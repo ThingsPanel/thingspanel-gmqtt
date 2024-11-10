@@ -87,6 +87,7 @@ jobs:
     - name: Upload Release Assets
       id: upload-release-assets
       run: |
+        cd cmd/gmqttd || { echo "Failed to enter gmqttd directory"; exit 1; }
         for asset in ./thingspanel-gmqtt-*; do
           asset_name=$(basename "$asset")
           content_type="application/zip"
