@@ -71,7 +71,7 @@ jobs:
           # Replace IP addresses in the necessary files
           if [ -f "thingspanel.yml" ]; then
             # Use sed to replace 47.115.213.71 with 127.0.0.1
-            sed -i 's/47.115.213.71/127.0.0.1/g' thingspanel.yml"
+            sed -i 's/47.115.213.71/127.0.0.1/g' thingspanel.yml
           
           # Package the build into an archive
           if [ "$os" == "windows" ]; then
