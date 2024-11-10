@@ -1,0 +1,94 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name'
+        required: false
+        default: 'latest'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.14
+    
+    - name: Determine Release Tag
+      id: determine-tag
+      run: echo "RELEASE_TAG=$(if [ '${{ github.event_name }}' == 'push' ]; then echo 'latest'; else echo '${{ github.event.inputs.tag }}'; fi)" >> $GITHUB_ENV
+
+    - name: Delete existing release if it exists
+      id: delete_release
+      run: |
+        tag=${{ github.event.inputs.tag || 'latest' }}
+        release_id=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/$tag" | \
+          jq -r '.id')
+        if [ "$release_id" != "null" ]; then
+          echo "Deleting existing release with ID $release_id"
+          curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
+        else
+          echo "No existing release found for tag ${{ github.event.inputs.tag }}"
+        fi
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+          tag_name: ${{ github.event.inputs.tag  || 'latest' }}
+          release_name: Release ${{ github.event.inputs.tag  || 'latest' }}
+          body: Release created by GitHub Actions. Tag ${{ github.event.inputs.tag  || 'latest' }}
+          draft: false
+          prerelease: false
+
+    - name: Build and package for multiple platforms
+      run: |
+        cd cmd/gmqttd || { echo "Failed to enter gmqttd directory"; exit 1; }
+        # Define the platforms and their configurations
+        platforms=("windows/amd64" "linux/amd64" "linux/arm64" "darwin/amd64")
+        for platform in "${platforms[@]}"; do
+          IFS="/" read -r os arch <<< "$platform"
+          output_file="thingspanel-gmqtt-$os-$arch"
+          zip_file="$output_file.zip"
+          tar_file="$output_file.tar.gz"
+          
+          # Build for each platform
+          CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -o $output_file
+          
+          # Package the build into an archive
+          if [ "$os" == "windows" ]; then
+            zip $zip_file $output_file certs thingspanel.yml default_config.yml 
+          else
+            tar -czvf $tar_file $output_file thingspanel.yml default_config.yml
+          fi
+
+          # Clean up build artifacts
+          rm $output_file
+        done
+
+    - name: Upload Release Assets
+      id: upload-release-assets
+      run: |
+        for asset in ./thingspanel-gmqtt-*; do
+          asset_name=$(basename "$asset")
+          content_type="application/zip"
+          if [[ "$asset" == *.tar.gz ]]; then
+            content_type="application/gzip"
+          fi
+          curl -XPOST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -F "file=@$asset" \
+          "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.id }}/assets?name=$asset_name&content_type=$content_type"
+        done   
