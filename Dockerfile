@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM swr.cn-east-2.myhuaweicloud.com/library/golang:1.17 AS builder
+FROM swr.cn-east-2.myhuaweicloud.com/library/golang:latest AS builder
 WORKDIR /go/src/app
 COPY . .
 ENV GO111MODULE=on
