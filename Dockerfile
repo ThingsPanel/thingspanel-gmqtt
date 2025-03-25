@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM swr.cn-east-2.myhuaweicloud.com/library/golang:alpine AS builder
+FROM swr.cn-east-2.myhuaweicloud.com/library/golang:latest AS builder
 WORKDIR $GOPATH/src/app
 ADD . ./
 ENV GO111MODULE on
