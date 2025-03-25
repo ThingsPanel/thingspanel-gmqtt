@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
-FROM golang:alpine AS builder
+FROM registry.cn-hangzhou.aliyuncs.com/library/golang:alpine AS builder
 WORKDIR $GOPATH/src/app
 ADD . ./
 ENV GO111MODULE on
-ENV GOPROXY="https://goproxy.io"
+ENV GOPROXY="https://goproxy.cn"
 WORKDIR $GOPATH/src/app/cmd/gmqttd
 RUN go build
 
-FROM alpine:3.12
+FROM registry.cn-hangzhou.aliyuncs.com/library/alpine:3.12
 WORKDIR /gmqttd
 # RUN apk update && apk add --no-cache tzdata
 COPY --from=builder /go/src/app/cmd/gmqttd .
