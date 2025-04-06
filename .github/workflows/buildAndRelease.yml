@@ -53,14 +53,6 @@ jobs:
     
     - name: Build and package for multiple platforms
       run: |
-        cd cmd/gmqttd || { echo "Failed to enter gmqttd directory"; exit 1; }
-        
-        # Replace IP addresses in the necessary files
-        if [ -f "thingspanel.yml" ]; then
-          # Use sed to replace 47.115.213.71 with 127.0.0.1
-          sed -i 's/47.115.213.71/127.0.0.1/g' thingspanel.yml
-        fi
-        
         # Define the platforms and their configurations
         # Format: "GOOS/GOARCH/GOARM" (GOARM is optional)
         platforms=(
@@ -72,6 +64,18 @@ jobs:
           "darwin/amd64"
           "darwin/arm64"
         )
+        
+        # Navigate to the gmqttd directory
+        cd cmd/gmqttd || { echo "Failed to enter gmqttd directory"; exit 1; }
+        
+        # Replace IP addresses in the necessary files if needed
+        if [ -f "thingspanel.yml" ]; then
+          # Use sed to replace 47.115.213.71 with 127.0.0.1
+          sed -i 's/47.115.213.71/127.0.0.1/g' thingspanel.yml
+        fi
+        
+        # Create dist directory for builds
+        mkdir -p ../../dist
         
         for platform in "${platforms[@]}"; do
           # Split the platform string
@@ -94,18 +98,18 @@ jobs:
           echo "Building for $GOOS/$GOARCH${GOARM:+/v$GOARM}..."
           
           # Create output directory
-          mkdir -p "dist/$platform_suffix"
+          mkdir -p "../../dist/$platform_suffix"
           
           # Copy necessary files
-          cp -f thingspanel.yml "dist/$platform_suffix/" 2>/dev/null || echo "No thingspanel.yml found"
-          cp -f default_config.yml "dist/$platform_suffix/" 2>/dev/null || echo "No default_config.yml found"
-          cp -r certs "dist/$platform_suffix/" 2>/dev/null || echo "No certs directory found"
+          cp -r certs "../../dist/$platform_suffix/" 2>/dev/null || echo "No certs directory found"
+          cp thingspanel.yml "../../dist/$platform_suffix/" 2>/dev/null || echo "No thingspanel.yml found"
+          cp default_config.yml "../../dist/$platform_suffix/" 2>/dev/null || echo "No default_config.yml found"
           
           # Adjust output file name for Windows
           if [ "$os" == "windows" ]; then
-             output_file="dist/$platform_suffix/thingspanel-gmqtt.exe"
+             output_file="../../dist/$platform_suffix/thingspanel-gmqtt.exe"
           else
-             output_file="dist/$platform_suffix/thingspanel-gmqtt"
+             output_file="../../dist/$platform_suffix/thingspanel-gmqtt"
           fi
           
           # Build for each platform
@@ -114,7 +118,7 @@ jobs:
           # Check if build was successful
           if [ $? -ne 0 ]; then
             echo "Failed to build for $GOOS/$GOARCH${GOARM:+/v$GOARM}, skipping..."
-            rm -rf "dist/$platform_suffix"
+            rm -rf "../../dist/$platform_suffix"
             continue
           fi
           
@@ -122,19 +126,18 @@ jobs:
           if [ "$os" == "windows" ]; then
             archive_name="thingspanel-gmqtt-$platform_suffix.zip"
             # Package into zip for Windows
-            (cd dist && zip -r "../$archive_name" "$platform_suffix")
+            (cd ../../dist && zip -r "../../$archive_name" "$platform_suffix")
           else
             archive_name="thingspanel-gmqtt-$platform_suffix.tar.gz"
             # Package into tar.gz for other platforms
-            tar -czf "$archive_name" -C dist "$platform_suffix"
+            tar -czf "../../$archive_name" -C ../../dist "$platform_suffix"
           fi
           
           echo "Created archive: $archive_name"
         done
         
-        # Move archives to parent directory
-        mv *.tar.gz *.zip ../ 2>/dev/null || echo "No archives to move"
-        cd ../
+        # Navigate back to root directory
+        cd ../..
         
         # List all created archives
         ls -la *.tar.gz *.zip 2>/dev/null || echo "No archives created"
