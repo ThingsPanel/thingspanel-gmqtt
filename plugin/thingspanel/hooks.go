@@ -168,6 +168,43 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 			return nil
 		}
 
+		// 这里按照需求重写custom/up/+
+		// 检查是否为custom/up/+模式的主题
+		if len(the_pub) > 10 && the_pub[:10] == "custom/up/" {
+			// 提取子设备地址（主题中custom/up/后面的部分）
+			subDeviceAddr := the_pub[10:]
+			if subDeviceAddr != "" {
+				// 解析原始payload为JSON
+				var originalData interface{}
+				if err := json.Unmarshal(req.Message.Payload, &originalData); err != nil {
+					Log.Warn("解析custom/up消息payload失败: " + err.Error())
+					return err
+				}
+
+				// 构造网关格式的payload
+				gatewayPayload := map[string]interface{}{
+					"sub_device_data": map[string]interface{}{
+						subDeviceAddr: originalData,
+					},
+				}
+
+				// 序列化为JSON并重写payload
+				gatewayData, err := json.Marshal(gatewayPayload)
+				if err != nil {
+					Log.Warn("构造网关payload失败: " + err.Error())
+					return err
+				}
+
+				// 重写消息内容
+				req.Message.Payload = gatewayData
+				// 重写主题为telemetry/gateway
+				the_pub = "telemetry/gateway"
+				req.Publish.TopicName = []byte(the_pub)
+
+				Log.Info(fmt.Sprintf("成功重写custom/up消息为网关格式: %s", subDeviceAddr))
+			}
+		}
+
 		// 消息重写
 		newMsgMap := make(map[string]interface{})
 		deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
