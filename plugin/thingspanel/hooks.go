@@ -197,9 +197,9 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 
 				// 重写消息内容
 				req.Message.Payload = gatewayData
-				// 重写主题为telemetry/gateway
-				the_pub = "telemetry/gateway"
-				req.Publish.TopicName = []byte(the_pub)
+				// 重写主题为gateway/telemetry
+				the_pub = "gateway/telemetry"
+				// 不修改req.Publish.TopicName，保持原始主题用于后续判断
 
 				Log.Info(fmt.Sprintf("成功重写custom/up消息为网关格式: %s", subDeviceAddr))
 			}
