@@ -1,12 +1,12 @@
 name: Build and Release
 on:
-  push:
-    branches: [ "main" ]
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
         description: 'Tag name'
-        required: false
+        required: true
         default: 'latest'
 jobs:
   build:
@@ -22,34 +22,29 @@ jobs:
     
     - name: Determine Release Tag
       id: determine-tag
-      run: echo "RELEASE_TAG=$(if [ '${{ github.event_name }}' == 'push' ]; then echo 'latest'; else echo '${{ github.event.inputs.tag }}'; fi)" >> $GITHUB_ENV
-    
-    - name: Delete existing release if it exists
-      id: delete_release
       run: |
-        tag=${{ github.event.inputs.tag || 'latest' }}
-        release_id=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          "https://api.github.com/repos/${{ github.repository }}/releases/tags/$tag" | \
-          jq -r '.id')
-        if [ "$release_id" != "null" ]; then
-          echo "Deleting existing release with ID $release_id"
-          curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
+        if [ '${{ github.event_name }}' == 'release' ]; then
+          echo "RELEASE_TAG=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+          echo "RELEASE_ID=${{ github.event.release.id }}" >> $GITHUB_ENV
         else
-          echo "No existing release found for tag $tag"
+          echo "RELEASE_TAG=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+          # For manual workflow, we need to get or create the release
+          tag=${{ github.event.inputs.tag || 'latest' }}
+          release_id=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$tag" | \
+            jq -r '.id')
+          if [ "$release_id" != "null" ]; then
+            echo "RELEASE_ID=$release_id" >> $GITHUB_ENV
+          else
+            echo "Creating new release for tag $tag"
+            release_response=$(curl -s -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"tag_name\":\"$tag\",\"name\":\"Release $tag\",\"body\":\"Release created by GitHub Actions. Tag $tag\",\"draft\":false,\"prerelease\":false}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases")
+            new_release_id=$(echo "$release_response" | jq -r '.id')
+            echo "RELEASE_ID=$new_release_id" >> $GITHUB_ENV
+          fi
         fi
-        
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-          tag_name: ${{ github.event.inputs.tag || 'latest' }}
-          release_name: Release ${{ github.event.inputs.tag || 'latest' }}
-          body: Release created by GitHub Actions. Tag ${{ github.event.inputs.tag || 'latest' }}
-          draft: false
-          prerelease: false
     
     - name: Build and package for multiple platforms
       run: |
@@ -122,16 +117,10 @@ jobs:
             continue
           fi
           
-          # Create archive name
-          if [ "$os" == "windows" ]; then
-            archive_name="thingspanel-gmqtt-$platform_suffix.zip"
-            # Package into zip for Windows
-            (cd ../../dist && zip -r "../../$archive_name" "$platform_suffix")
-          else
-            archive_name="thingspanel-gmqtt-$platform_suffix.tar.gz"
-            # Package into tar.gz for other platforms
-            tar -czf "../../$archive_name" -C ../../dist "$platform_suffix"
-          fi
+          # Create archive name (all platforms use zip)
+          archive_name="thingspanel-gmqtt-$platform_suffix.zip"
+          # Package into zip for all platforms
+          (cd ../../dist && zip -r "../../$archive_name" "$platform_suffix")
           
           echo "Created archive: $archive_name"
         done
@@ -140,25 +129,22 @@ jobs:
         cd ../..
         
         # List all created archives
-        ls -la *.tar.gz *.zip 2>/dev/null || echo "No archives created"
+        ls -la *.zip 2>/dev/null || echo "No archives created"
     
     - name: Upload Release Assets
       id: upload-release-assets
       run: |
-        for asset in ./thingspanel-gmqtt-*.tar.gz ./thingspanel-gmqtt-*.zip; do
+        for asset in ./thingspanel-gmqtt-*.zip; do
           if [ -f "$asset" ]; then
             asset_name=$(basename "$asset")
             echo "Uploading $asset_name..."
             
-            content_type="application/gzip"
-            if [[ "$asset" == *.zip ]]; then
-              content_type="application/zip"
-            fi
+            content_type="application/zip"
             
             curl -XPOST \
               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Content-Type: $content_type" \
               --data-binary "@$asset" \
-              "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.id }}/assets?name=$asset_name"
+              "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}/assets?name=$asset_name"
           fi
         done
