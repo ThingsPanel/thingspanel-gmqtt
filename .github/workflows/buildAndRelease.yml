@@ -161,7 +161,7 @@ jobs:
           # Create archive name (all platforms use zip)
           archive_name="thingspanel-gmqtt-$platform_suffix.zip"
           # Package into zip for all platforms
-          (cd ../../dist && zip -r "../../$archive_name" "$platform_suffix")
+          (cd ../../dist && zip -r "../$archive_name" "$platform_suffix")
           
           echo "Created archive: $archive_name"
         done
@@ -169,16 +169,26 @@ jobs:
         # Navigate back to root directory
         cd ../..
         
-        # List all created archives
-        ls -la *.zip 2>/dev/null || echo "No archives created"
+        # List all created archives  
+        echo "Listing created archives:"
+        ls -la *.zip 2>/dev/null || echo "No archives found in current directory"
+        echo "Current working directory: $(pwd)"
+        echo "Contents of current directory:"
+        ls -la
     
     # 上传构建产物到GitHub Release
     - name: Upload Release Assets
       id: upload-release-assets
       run: |
+        echo "Current working directory: $(pwd)"
+        echo "Looking for zip files..."
+        ls -la *.zip 2>/dev/null || echo "No zip files found in root directory"
+        
         # 遍历所有ZIP打包文件并上传
+        found_files=false
         for asset in ./thingspanel-gmqtt-*.zip; do
           if [ -f "$asset" ]; then
+            found_files=true
             asset_name=$(basename "$asset")
             echo "Uploading $asset_name..."
             
@@ -186,12 +196,12 @@ jobs:
             content_type="application/zip"
             
             # 通过GitHub API上传文件到release
-            echo "Uploading to release ID: ${{ env.UPLOAD_RELEASE_ID }}"
+            echo "Uploading to release ID: ${UPLOAD_RELEASE_ID}"
             upload_response=$(curl -s -w "%{http_code}" -XPOST \
               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Content-Type: $content_type" \
               --data-binary "@$asset" \
-              "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ env.UPLOAD_RELEASE_ID }}/assets?name=$asset_name")
+              "https://uploads.github.com/repos/${{ github.repository }}/releases/${UPLOAD_RELEASE_ID}/assets?name=$asset_name")
             
             http_code=${upload_response: -3}
             if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
@@ -203,3 +213,8 @@ jobs:
             fi
           fi
         done
+        
+        if [ "$found_files" = false ]; then
+          echo "❌ No zip files found to upload!"
+          exit 1
+        fi
