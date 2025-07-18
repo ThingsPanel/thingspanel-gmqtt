@@ -29,13 +29,13 @@ jobs:
         else
           echo "RELEASE_TAG=${{ github.event.inputs.tag || 'latest' }}" >> $GITHUB_ENV
         fi
-        echo "Using release tag: ${{ env.RELEASE_TAG }}"
+        echo "Using release tag: ${RELEASE_TAG}"
 
     # 检查是否存在同名发布版本
     - name: Check existing release
       id: check_release
       run: |
-        tag=${{ env.RELEASE_TAG }}
+        tag="${RELEASE_TAG}"
         # 通过GitHub API查询是否存在同名release
         release_response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
           "https://api.github.com/repos/${{ github.repository }}/releases/tags/$tag")
@@ -85,7 +85,7 @@ jobs:
         else
           echo "UPLOAD_RELEASE_ID=${{ steps.create_release.outputs.id }}" >> $GITHUB_ENV
         fi
-        echo "Will upload to release ID: ${{ env.UPLOAD_RELEASE_ID }}"
+        echo "Will upload to release ID: ${UPLOAD_RELEASE_ID}"
     
     - name: Build and package for multiple platforms
       run: |
