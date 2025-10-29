@@ -1003,6 +1003,16 @@ func (srv *server) serveTCP(l net.Listener) {
 			}
 			return
 		}
+
+		// 禁用 TCP Keep-Alive（解决 15 秒自动发送 Keep-Alive 包的问题）
+		// 详见：docs/2025.10.29-TCP_KeepAlive问题分析.md
+		if tcpConn, ok := rw.(*net.TCPConn); ok {
+			// 禁用 TCP 层的 Keep-Alive，使用 MQTT 协议层的 Keep-Alive 即可
+			_ = tcpConn.SetKeepAlive(false)
+			zaplog.Debug("TCP Keep-Alive disabled for connection",
+				zap.String("remote_addr", tcpConn.RemoteAddr().String()))
+		}
+
 		if srv.hooks.OnAccept != nil {
 			if !srv.hooks.OnAccept(context.Background(), rw) {
 				rw.Close()

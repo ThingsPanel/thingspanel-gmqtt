@@ -121,11 +121,24 @@ func NewStartCmd() *cobra.Command {
 			must(err)
 			logger = l
 
+			// 添加 OnAccept Hook 来禁用 TCP Keep-Alive
+			hooks := server.Hooks{
+				OnAccept: func(ctx context.Context, conn net.Conn) bool {
+					if tcpConn, ok := conn.(*net.TCPConn); ok {
+						// 禁用 TCP Keep-Alive (Go 默认是 15 秒)
+						// MQTT 应用层已经有 Keep-Alive 机制，不需要 TCP 层的 Keep-Alive
+						_ = tcpConn.SetKeepAlive(false)
+					}
+					return true
+				},
+			}
+
 			s := server.New(
 				server.WithConfig(c),
 				server.WithTCPListener(tcpListeners...),
 				server.WithWebsocketServer(websockets...),
 				server.WithLogger(l),
+				server.WithHook(hooks),
 			)
 
 			err = s.Init()
