@@ -137,8 +137,19 @@ func (t *Thingspanel) OnSubscribeWrapper(pre server.OnSubscribe) server.OnSubscr
 		}
 
 		the_sub := req.Subscribe.Topics[0].Name
-		// 验证设备的订阅权限
+		// 验证设备的订阅权限；若失败，尝试下行自定义映射放行
 		if !util.ValidateSubTopic(the_sub) {
+			// 获取设备与配置ID
+			deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
+			if err == nil && deviceId != "" {
+				if dev, derr := GetDeviceById(deviceId); derr == nil && dev != nil && dev.DeviceConfigID != nil {
+					svc := NewTopicMapService()
+					if svc.AllowDownSubscribe(ctx, *dev.DeviceConfigID, the_sub) {
+						Log.Info("订阅通过（自定义下行映射）: " + the_sub)
+						return nil
+					}
+				}
+			}
 			Log.Warn("订阅权限验证失败: " + the_sub)
 			return errors.New("permission denied")
 		}

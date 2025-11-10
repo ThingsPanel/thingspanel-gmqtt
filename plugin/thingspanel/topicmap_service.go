@@ -29,4 +29,21 @@ func (s *TopicMapService) ResolveUpTarget(ctx context.Context, deviceConfigID st
 	return "", false
 }
 
-
+// AllowDownSubscribe returns true if a subscribe topic is allowed by down-direction custom mappings.
+// 按设计，设备订阅的是“下行原始主题”，因此应当匹配 source_topic。
+func (s *TopicMapService) AllowDownSubscribe(ctx context.Context, deviceConfigID string, subscribeTopic string) bool {
+	mappings, err := GetMappingsWithCache(ctx, deviceConfigID, DirectionDown)
+	if err != nil || len(mappings) == 0 {
+		return false
+	}
+	for _, m := range mappings {
+		rx, ok := compileSourcePattern(m.SourceTopic)
+		if !ok {
+			continue
+		}
+		if rx.MatchString(subscribeTopic) {
+			return true
+		}
+	}
+	return false
+}
