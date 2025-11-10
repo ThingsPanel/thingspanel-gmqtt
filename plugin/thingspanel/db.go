@@ -201,6 +201,18 @@ func GetDeviceById(deviceId string) (*Device, error) {
 	return &device, nil
 }
 
+// GetDeviceByNumber fetches device by device_number
+func GetDeviceByNumber(deviceNumber string) (*Device, error) {
+	var device Device
+	result := db.Model(&Device{}).Where("device_number = ?", deviceNumber).First(&device)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	// 缓存一份（使用设备ID作为key）
+	_ = SetRedisForJsondata(device.ID, device, 0)
+	return &device, nil
+}
+
 // 根据token获取订阅信息
 type UserPub struct {
 	Attribute string `json:"attribute"`

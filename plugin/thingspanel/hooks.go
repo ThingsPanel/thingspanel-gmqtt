@@ -165,6 +165,20 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 		// root用户和插件用户直接转发
 		if username == "root" || username == "plugin" {
 			RootMessageForwardWrapper(req.Message.Topic, req.Message.Payload, false)
+			// root平台下发：若主题属于规范“下行主题”，提取设备号并按映射额外转发到设备原始主题
+			topic := req.Message.Topic
+			if deviceNumber, ok := TryExtractDeviceNumberFromNormalized(topic); ok && deviceNumber != "" {
+				if dev, derr := GetDeviceByNumber(deviceNumber); derr == nil && dev != nil && dev.DeviceConfigID != nil {
+					svc := NewTopicMapService()
+					if src, matched := svc.ResolveDownSource(ctx, *dev.DeviceConfigID, topic, deviceNumber); matched && src != "" {
+						if err := DefaultMqttClient.SendData(src, req.Message.Payload); err != nil {
+							Log.Warn("下行额外转发失败: " + err.Error())
+						} else {
+							Log.Info("下行额外转发成功: " + src)
+						}
+					}
+				}
+			}
 			return nil
 		}
 
@@ -182,23 +196,23 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 			}
 		}
 
-		// 验证设备的发布权限；若失败，尝试上行自定义映射
-		if !util.ValidateTopic(the_pub) {
-			if deviceConfigID != "" {
-				svc := NewTopicMapService()
-				if target, ok := svc.ResolveUpTarget(ctx, deviceConfigID, the_pub); ok && target != "" {
-					// 包装消息并转发到目标主题
-					newMsgMap := make(map[string]interface{})
-					newMsgMap["device_id"] = deviceId
-					newMsgMap["values"] = req.Message.Payload
-					newMsgJson, _ := json.Marshal(newMsgMap)
-					if err := DefaultMqttClient.SendData(target, newMsgJson); err != nil {
-						return err
-					}
-					// 丢弃原消息
-					return errors.New("message is discarded;")
+		// 优先尝试上行自定义映射
+		if deviceConfigID != "" {
+			svc := NewTopicMapService()
+			if target, ok := svc.ResolveUpTarget(ctx, deviceConfigID, the_pub); ok && target != "" {
+				newMsgMap := make(map[string]interface{})
+				newMsgMap["device_id"] = deviceId
+				newMsgMap["values"] = req.Message.Payload
+				newMsgJson, _ := json.Marshal(newMsgMap)
+				if err := DefaultMqttClient.SendData(target, newMsgJson); err != nil {
+					return err
 				}
+				return errors.New("message is discarded;")
 			}
+		}
+
+		// 验证设备的发布权限；若失败直接拒绝
+		if !util.ValidateTopic(the_pub) {
 			return errors.New("permission denied")
 		}
 
