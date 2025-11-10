@@ -158,8 +158,36 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 		}
 
 		the_pub := string(req.Publish.TopicName)
-		// 验证设备的发布权限
+
+		// 获取设备与配置ID（用于自定义映射）
+		deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
+		if err != nil {
+			return err
+		}
+		var deviceConfigID string
+		if deviceId != "" {
+			if dev, derr := GetDeviceById(deviceId); derr == nil && dev != nil && dev.DeviceConfigID != nil {
+				deviceConfigID = *dev.DeviceConfigID
+			}
+		}
+
+		// 验证设备的发布权限；若失败，尝试上行自定义映射
 		if !util.ValidateTopic(the_pub) {
+			if deviceConfigID != "" {
+				svc := NewTopicMapService()
+				if target, ok := svc.ResolveUpTarget(ctx, deviceConfigID, the_pub); ok && target != "" {
+					// 包装消息并转发到目标主题
+					newMsgMap := make(map[string]interface{})
+					newMsgMap["device_id"] = deviceId
+					newMsgMap["values"] = req.Message.Payload
+					newMsgJson, _ := json.Marshal(newMsgMap)
+					if err := DefaultMqttClient.SendData(target, newMsgJson); err != nil {
+						return err
+					}
+					// 丢弃原消息
+					return errors.New("message is discarded;")
+				}
+			}
 			return errors.New("permission denied")
 		}
 
@@ -170,19 +198,10 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 
 		// 消息重写
 		newMsgMap := make(map[string]interface{})
-		deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
-		if err != nil {
-			return err
-		}
 		newMsgMap["device_id"] = deviceId
 		newMsgMap["values"] = req.Message.Payload
 		newMsgJson, _ := json.Marshal(newMsgMap)
 		req.Message.Payload = newMsgJson
-		// 如果原主题被转换，丢弃消息，重新发布到转换后的主题
-		if the_pub != string(req.Publish.TopicName) {
-			DefaultMqttClient.SendData(the_pub, req.Message.Payload)
-			return errors.New("message is discarded;")
-		}
 		return nil
 	}
 }
