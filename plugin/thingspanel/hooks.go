@@ -167,7 +167,6 @@ func (t *Thingspanel) OnSubscribeWrapper(pre server.OnSubscribe) server.OnSubscr
 			Log.Warn("【订阅】权限验证失败", zap.String("topic", the_sub), zap.String("client_id", client.ClientOptions().ClientID), zap.Error(err))
 			return errors.New("permission denied")
 		}
-		Log.Info("【订阅】权限验证成功", zap.String("topic", the_sub), zap.String("client_id", client.ClientOptions().ClientID))
 		return nil
 	}
 }
@@ -229,6 +228,8 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 				Log.Info("【上行自定义主题转发】成功", zap.String("topic", the_pub), zap.String("client_id", client.ClientOptions().ClientID), zap.String("target", target))
 				// 丢弃原消息
 				return errors.New("message is discarded;")
+			} else {
+				Log.Debug("【上行】未匹配到自定义主题", zap.String("topic", the_pub), zap.String("client_id", client.ClientOptions().ClientID))
 			}
 		}
 
