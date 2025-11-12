@@ -75,11 +75,15 @@ func (c *MqttClient) SendData(topic string, data []byte) error {
 			i++
 		}
 	}
-	token := c.Client.Publish(topic, 0, false, string(data))
-	if !token.WaitTimeout(5 * time.Second) {
-		Log.Warn("【消息发布超时】", zap.String("topic", topic), zap.String("data", string(data)))
-	} else if err := token.Error(); err != nil {
-		Log.Warn("【消息发布失败】", zap.String("topic", topic), zap.String("data", string(data)), zap.Error(err))
-	}
+	token := c.Client.Publish(topic, 1, false, string(data))
+	go func() {
+		if !token.WaitTimeout(15 * time.Second) {
+			Log.Warn("【消息发布超时】", zap.String("topic", topic), zap.String("data", string(data)))
+			return
+		}
+		if err := token.Error(); err != nil {
+			Log.Warn("【消息发布失败】", zap.String("topic", topic), zap.String("data", string(data)), zap.Error(err))
+		}
+	}()
 	return nil
 }

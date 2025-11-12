@@ -41,7 +41,7 @@ mqtt:
   # The maximum session expiry interval in seconds. 会话过期期限（秒）。
   session_expiry: 2h
   # The interval time for session expiry checker to check whether there are expired sessions. 会话过期检查器的检查间隔。
-  session_expiry_check_timer: 20s
+  session_expiry_check_timer: 30s
   # The maximum lifetime of the message in seconds. 消息在队列中的最长存活时间（秒）。
   # If a message in the queue is not sent in message_expiry time, it will be dropped, which means it will not be sent to the subscriber. 若超时未发送则丢弃，不再推送给订阅者。
   message_expiry: 1h
@@ -74,11 +74,11 @@ mqtt:
   # The maximum queue length of the outgoing messages. 出站消息队列最长长度。
   #	If the queue is full, some message will be dropped. 队列满时将丢弃部分消息。
   #	The message dropping strategy is described in the document of the persistence/queue.Store interface. 丢弃策略详见 persistence/queue.Store 文档。
-  max_queued_messages: 10000
+  max_queued_messages: 100000
   # The limits of inflight message length of the outgoing messages. 在途消息数量限制。
   #	Inflight message is also stored in the message queue, so it must be less than or equal to max_queued_messages. 在途消息存储于队列中，因此不能超过队列上限。
   #	Inflight message is the QoS 1 or QoS 2 message that has been sent out to a client but not been acknowledged yet. 指已发出但未确认的 QoS1/2 消息。
-  max_inflight: 100
+  max_inflight: 10000
   # Whether to store QoS 0 message for a offline session. 是否在离线会话中存储 QoS0 消息。
   queue_qos0_messages: false
   # The delivery mode. The possible value can be "overlap" or "onlyonce". 消息投递模式，可选 overlap/onlyonce。
