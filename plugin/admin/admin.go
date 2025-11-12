@@ -30,6 +30,10 @@ type Admin struct {
 }
 
 func (a *Admin) registerHTTP(g server.APIRegistrar) (err error) {
+	err = g.RegisterHTTPHandler(registerAdminUI)
+	if err != nil {
+		return err
+	}
 	err = g.RegisterHTTPHandler(RegisterClientServiceHandlerFromEndpoint)
 	if err != nil {
 		return err

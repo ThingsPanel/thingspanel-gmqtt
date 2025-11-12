@@ -489,7 +489,7 @@ func (srv *server) registerClient(connect *packets.Connect, client *client) (ses
 		if err != nil {
 			return
 		}
-		zaplog.Info("logged in with new session",
+		zaplog.Info("【新的连接建立】logged in with new session",
 			zap.String("remote_addr", client.rwc.RemoteAddr().String()),
 			zap.String("client_id", client.opts.ClientID),
 		)
@@ -596,7 +596,7 @@ func (srv *server) unregisterClient(client *client) {
 			zap.String("client_id", client.opts.ClientID),
 			zap.Error(err))
 	}
-	zaplog.Info("logged out and cleaning session",
+	zaplog.Info("【连接断开】logged out and cleaning session",
 		zap.String("remote_addr", client.rwc.RemoteAddr().String()),
 		zap.String("client_id", client.opts.ClientID),
 	)
@@ -1009,8 +1009,8 @@ func (srv *server) serveTCP(l net.Listener) {
 		if tcpConn, ok := rw.(*net.TCPConn); ok {
 			// 禁用 TCP 层的 Keep-Alive，使用 MQTT 协议层的 Keep-Alive 即可
 			_ = tcpConn.SetKeepAlive(false)
-			zaplog.Debug("TCP Keep-Alive disabled for connection",
-				zap.String("remote_addr", tcpConn.RemoteAddr().String()))
+			//zaplog.Debug("TCP Keep-Alive disabled for connection",
+			//	zap.String("remote_addr", tcpConn.RemoteAddr().String()))
 		}
 
 		if srv.hooks.OnAccept != nil {

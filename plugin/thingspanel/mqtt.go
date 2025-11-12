@@ -6,6 +6,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type MqttClient struct {
@@ -62,7 +63,7 @@ func (c *MqttClient) SendData(topic string, data []byte) error {
 		}
 	}()
 	//go func() {
-	Log.Info("检查MqttClIent连接状态...")
+	//Log.Info("检查MqttClIent连接状态...")
 	if !c.IsFlag {
 		i := 1
 		for {
@@ -74,14 +75,11 @@ func (c *MqttClient) SendData(topic string, data []byte) error {
 			i++
 		}
 	}
-	Log.Info("发送设备状态...")
 	token := c.Client.Publish(topic, 0, false, string(data))
 	if !token.WaitTimeout(5 * time.Second) {
-		Log.Warn("发送设备状态超时")
+		Log.Warn("【消息发布超时】", zap.String("topic", topic), zap.String("data", string(data)))
 	} else if err := token.Error(); err != nil {
-		Log.Warn("发送设备状态失败: " + err.Error())
+		Log.Warn("【消息发布失败】", zap.String("topic", topic), zap.String("data", string(data)), zap.Error(err))
 	}
-	Log.Info("发送设备状态完成")
-	//}()
 	return nil
 }

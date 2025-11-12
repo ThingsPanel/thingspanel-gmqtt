@@ -9,6 +9,7 @@ import (
 	"github.com/DrmagicE/gmqtt/plugin/thingspanel/util"
 	"github.com/DrmagicE/gmqtt/server"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 func (t *Thingspanel) HookWrapper() server.HookWrapper {
@@ -50,8 +51,10 @@ func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicA
 			}
 		}
 		// ... 处理本插件的鉴权逻辑
-		Log.Info("鉴权Username：" + string(req.Connect.Username))
-		Log.Info("鉴权Password：" + string(req.Connect.Password))
+		Log.Info("【鉴权】开始",
+			zap.String("username", string(req.Connect.Username)),
+			zap.String("password", string(req.Connect.Password)),
+			zap.String("client_id", string(req.Connect.ClientID)))
 
 		// voucher是一个字符串，如果没有密码，voucher就是{"username":"xxx"}，如果有密码，voucher就是{"username":"xxx","password":"xxx"}
 		voucher := ""
@@ -61,24 +64,28 @@ func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicA
 			voucher = fmt.Sprintf(`{"username":"%s"}`, string(req.Connect.Username))
 		}
 		// 通过voucher验证设备
-		Log.Debug("voucher: " + voucher)
 		device, err := GetDeviceByVoucher(voucher)
 		if err != nil {
-			Log.Warn(err.Error())
+			Log.Warn("【鉴权】失败",
+				zap.String("client_id", string(req.Connect.ClientID)),
+				zap.Error(err))
 			return err
+		} else {
+			Log.Info("【鉴权】通过",
+				zap.String("client_id", string(req.Connect.ClientID)),
+				zap.String("device_id", device.ID))
 		}
-		Log.Info("设备Voucher：" + device.Voucher)
-		Log.Info("ClientID：" + string(req.Connect.ClientID))
 		// mqtt客户端id必须唯一
 		err = SetStr("mqtt_clinet_id_"+string(req.Connect.ClientID), device.ID, 0)
 		if err != nil {
-			Log.Warn(err.Error())
+			Log.Error(err.Error())
 			return err
 		}
 		return nil
 	}
 }
 
+// 设备上线钩子函数
 func (t *Thingspanel) OnConnectedWrapper(pre server.OnConnected) server.OnConnected {
 	return func(ctx context.Context, client server.Client) {
 		// 客户端连接后
@@ -89,17 +96,16 @@ func (t *Thingspanel) OnConnectedWrapper(pre server.OnConnected) server.OnConnec
 		if client.ClientOptions().Username != "root" && client.ClientOptions().Username != "plugin" {
 			deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
 			if err != nil {
-				Log.Warn("获取设备ID失败")
+				Log.Warn("【上线回调】获取设备ID失败", zap.String("client_id", client.ClientOptions().ClientID), zap.Error(err))
 				return
 			}
 			if deviceId == "" {
-				Log.Warn("设备ID不存在")
+				Log.Warn("【上线回调】设备ID不存在", zap.String("client_id", client.ClientOptions().ClientID))
 				return
 			}
 			if err := DefaultMqttClient.SendData("devices/status/"+deviceId, []byte("1")); err != nil {
-				Log.Warn("上报状态失败")
+				Log.Warn("【设备上线】上报状态失败", zap.String("device_id", deviceId), zap.Error(err))
 			}
-			Log.Info("发送设备状态成功")
 		}
 	}
 }
@@ -109,20 +115,28 @@ func (t *Thingspanel) OnClosedWrapper(pre server.OnClosed) server.OnClosed {
 		// 主题：device/status
 		// 报文：{"token":username,"SYS_STATUS":"offline"}
 		// username为客户端用户名
-		if client.ClientOptions().Username != "root" || client.ClientOptions().Username != "plugin" {
+		Log.Info("【连接断开】OnClosedWrapper",
+			zap.String("username", client.ClientOptions().Username),
+			zap.String("client_id", client.ClientOptions().ClientID),
+			zap.Error(err))
+		if client.ClientOptions().Username != "root" && client.ClientOptions().Username != "plugin" {
 			deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
 			if err != nil {
-				Log.Warn("获取设备ID失败")
+				Log.Warn("【连接断开】获取设备ID失败",
+					zap.String("client_id", client.ClientOptions().ClientID),
+					zap.Error(err))
 				return
 			}
 			if deviceId == "" {
-				Log.Warn("设备ID不存在")
+				Log.Warn("【连接断开】设备ID不存在",
+					zap.String("client_id", client.ClientOptions().ClientID))
 				return
 			}
 			if err := DefaultMqttClient.SendData("devices/status/"+deviceId, []byte("0")); err != nil {
-				Log.Warn("上报状态失败")
+				Log.Warn("【连接断开】上报状态失败",
+					zap.String("client_id", client.ClientOptions().ClientID),
+					zap.Error(err))
 			}
-			Log.Info("发送设备状态成功")
 		}
 	}
 }
@@ -161,7 +175,11 @@ func (t *Thingspanel) OnSubscribeWrapper(pre server.OnSubscribe) server.OnSubscr
 func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgArrived {
 	return func(ctx context.Context, client server.Client, req *server.MsgArrivedRequest) (err error) {
 		username := client.ClientOptions().Username
-		Log.Info(fmt.Sprintf("OnMsgArrivedWrapper: username %s payload %s", username, string(req.Message.Payload)))
+		Log.Debug("【收到消息】OnMsgArrivedWrapper",
+			zap.String("topic", req.Message.Topic),
+			zap.String("client_id", client.ClientOptions().ClientID),
+			zap.String("username", username),
+			zap.String("payload", string(req.Message.Payload)))
 		// root用户和插件用户直接转发
 		if username == "root" || username == "plugin" {
 			RootMessageForwardWrapper(req.Message.Topic, req.Message.Payload, false)

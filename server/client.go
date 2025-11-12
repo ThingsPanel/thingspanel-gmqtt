@@ -257,7 +257,7 @@ func (client *client) setConnected(time time.Time) {
 	atomic.StoreInt32(&client.status, Connected)
 }
 
-//Status returns client's status
+// Status returns client's status
 func (client *client) Status() int32 {
 	return atomic.LoadInt32(&client.status)
 }
@@ -270,7 +270,7 @@ func (client *client) IsConnected() bool {
 func (client *client) setError(err error) {
 	client.errOnce.Do(func() {
 		if err != nil && err != io.EOF {
-			zaplog.Warn("connection lost",
+			zaplog.Warn("【连接断开】connection lost",
 				zap.String("client_id", client.opts.ClientID),
 				zap.String("remote_addr", client.rwc.RemoteAddr().String()),
 				zap.Error(err))
@@ -927,7 +927,7 @@ func (client *client) subscribeHandler(sub *packets.Subscribe) *codes.Error {
 			if srv.hooks.OnSubscribed != nil {
 				srv.hooks.OnSubscribed(context.Background(), client, sub)
 			}
-			zaplog.Info("subscribe succeeded",
+			zaplog.Info("【订阅成功】subscribe succeeded",
 				zap.String("topic", sub.TopicFilter),
 				zap.Uint8("qos", sub.QoS),
 				zap.Uint8("retain_handling", sub.RetainHandling),
@@ -1290,7 +1290,7 @@ func (client *client) disconnectHandler(dis *packets.Disconnect) *codes.Error {
 	return nil
 }
 
-//读处理
+// 读处理
 func (client *client) readHandle() {
 	var err error
 	defer func() {
@@ -1444,7 +1444,7 @@ func (client *client) pollMessageHandler() {
 	}
 }
 
-//server goroutine结束的条件:1客户端断开连接 或 2发生错误
+// server goroutine结束的条件:1客户端断开连接 或 2发生错误
 func (client *client) serve() {
 	defer client.internalClose()
 	readWg := &sync.WaitGroup{}

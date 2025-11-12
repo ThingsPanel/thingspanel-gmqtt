@@ -1,116 +1,116 @@
-# Path to pid file.
-# If not set, there will be no pid file.
-# pid_file: /var/run/gmqttd.pid
+# Path to pid file. PID 文件路径。
+# If not set, there will be no pid file. 如果未设置，将不会生成 PID 文件。
+# pid_file: /var/run/gmqttd.pid 示例 PID 文件路径。
 
 listeners:
-  # bind address
+  # bind address 绑定地址
   - address: ":1883"
-#    tls:
-#      cacert: "path_to_ca_cert_file"
-#      cert: "path_to_cert_file"
-#      key: "path_to_key_file"
+#    tls: TLS 配置
+#      cacert: "path_to_ca_cert_file" CA 证书路径
+#      cert: "path_to_cert_file" 服务器证书路径
+#      key: "path_to_key_file" 服务器私钥路径
   - address: ":8883"
     tls:
       cacert: "./certs/ca.crt"
       cert: "./certs/server.crt"
       key: "./certs/server.key"
-  # - address: ":8883"
-  #   # websocket setting
-  #   websocket:
-  #     path: "/"
+  # - address: ":8883" 示例备用监听地址
+  #   # websocket setting WebSocket 设置
+  #   websocket: WebSocket 配置节
+  #     path: "/" WebSocket 路径
 
 api:
   grpc:
-    # The gRPC server listen address. Supports unix socket and tcp socket.
+    # The gRPC server listen address. Supports unix socket and tcp socket. gRPC 服务器监听地址，支持 Unix 套接字和 TCP 套接字。
     - address: "tcp://127.0.0.1:8084"
-    #- address: "unix:///var/run/gmqttd.sock"
-#      tls:
-#        cacert: "path_to_ca_cert_file"
-#        cert: "path_to_cert_file"
-#        key: "path_to_key_file"
+    #- address: "unix:///var/run/gmqttd.sock" 示例 Unix 套接字地址
+#      tls: TLS 配置
+#        cacert: "path_to_ca_cert_file" CA 证书路径
+#        cert: "path_to_cert_file" 服务器证书路径
+#        key: "path_to_key_file" 服务器私钥路径
   http:
-      # The HTTP server listen address. This is a reverse-proxy server in front of gRPC server.
+      # The HTTP server listen address. This is a reverse-proxy server in front of gRPC server. HTTP 服务器监听地址，是 gRPC 的反向代理。
     - address: "tcp://127.0.0.1:8083"
-      map: "tcp://127.0.0.1:8084" # The backend gRPC server endpoint,
-#      tls:
-#        cacert: "path_to_ca_cert_file"
-#        cert: "path_to_cert_file"
-#        key: "path_to_key_file"
+      map: "tcp://127.0.0.1:8084" # The backend gRPC server endpoint, 后端 gRPC 服务地址。
+#      tls: TLS 配置
+#        cacert: "path_to_ca_cert_file" CA 证书路径
+#        cert: "path_to_cert_file" 服务器证书路径
+#        key: "path_to_key_file" 服务器私钥路径
 
 mqtt:
-  # The maximum session expiry interval in seconds.
+  # The maximum session expiry interval in seconds. 会话过期期限（秒）。
   session_expiry: 2h
-  # The interval time for session expiry checker to check whether there are expired sessions.
+  # The interval time for session expiry checker to check whether there are expired sessions. 会话过期检查器的检查间隔。
   session_expiry_check_timer: 20s
-  # The maximum lifetime of the message in seconds.
-  # If a message in the queue is not sent in message_expiry time, it will be dropped, which means it will not be sent to the subscriber.
+  # The maximum lifetime of the message in seconds. 消息在队列中的最长存活时间（秒）。
+  # If a message in the queue is not sent in message_expiry time, it will be dropped, which means it will not be sent to the subscriber. 若超时未发送则丢弃，不再推送给订阅者。
   message_expiry: 1h
-  # The lifetime of the "inflight" message in seconds.
-  #	If a "inflight" message is not acknowledged by a client in inflight_expiry time, it will be removed when the message queue is full.
+  # The lifetime of the "inflight" message in seconds. 在途消息存活时间（秒）。
+  #	If a "inflight" message is not acknowledged by a client in inflight_expiry time, it will be removed when the message queue is full. 若在途消息未获确认且队列已满，将被移除。
   inflight_expiry: 30s
-  # The maximum packet size that the server is willing to accept from the client.
+  # The maximum packet size that the server is willing to accept from the client. 服务器能接受的最大报文大小。
   max_packet_size: 268435456
-  # The maximum number of QoS 1 and QoS 2 publications that the server is willing to process concurrently for the client.
-  server_receive_maximum: 100
-  # The maximum keep alive time in seconds allows by the server.
-  #	If the client requests a keepalive time bigger than MaxKeepalive,the server will use MaxKeepAlive as the keepalive time.
-  #	In this case, if the client version is v5, the server will set MaxKeepalive into CONNACK to inform the client.
-  #	But if the client version is 3.x, the server has no way to inform the client that the keepalive time has been changed.
+  # The maximum number of QoS 1 and QoS 2 publications that the server is willing to process concurrently for the client. 服务器为客户端并发处理的 QoS1/2 发布上限。
+  server_receive_maximum: 1000
+  # The maximum keep alive time in seconds allows by the server. 服务器允许的最大 Keepalive（秒）。
+  #	If the client requests a keepalive time bigger than MaxKeepalive,the server will use MaxKeepAlive as the keepalive time. 如果客户端请求更大值，服务器将使用该最大值。
+  #	In this case, if the client version is v5, the server will set MaxKeepalive into CONNACK to inform the client. MQTT v5 客户端会在 CONNACK 中收到提示。
+  #	But if the client version is 3.x, the server has no way to inform the client that the keepalive time has been changed. MQTT 3.x 客户端无法得知此调整。
   max_keepalive: 300
-  # The highest value that the server will accept as a Topic Alias sent by the client.
-  # No-op if the client version is MQTTv3.x .
+  # The highest value that the server will accept as a Topic Alias sent by the client. 服务器接受的最大主题别名值。
+  # No-op if the client version is MQTTv3.x . 若客户端为 MQTT v3.x，此设置无效。
   topic_alias_maximum: 10
-  # Whether the server supports Subscription Identifiers.
-  # No-op if the client version is MQTTv3.x .
+  # Whether the server supports Subscription Identifiers. 是否支持订阅标识符。
+  # No-op if the client version is MQTTv3.x . MQTT v3.x 客户端无法使用。
   subscription_identifier_available: true
-  # Whether the server supports Wildcard Subscriptions.
+  # Whether the server supports Wildcard Subscriptions. 是否支持通配符订阅。
   wildcard_subscription_available: true
-  # Whether the server supports Shared Subscriptions.
+  # Whether the server supports Shared Subscriptions. 是否支持共享订阅。
   shared_subscription_available: true
-  # The highest QOS level permitted for a Publish.
+  # The highest QOS level permitted for a Publish. 最大发布 QoS。
   maximum_qos: 2
-  # Whether the server supports retained messages.
+  # Whether the server supports retained messages. 是否支持保留消息。
   retain_available: false
-  # The maximum queue length of the outgoing messages.
-  #	If the queue is full, some message will be dropped.
-  #	The message dropping strategy is described in the document of the persistence/queue.Store interface.
+  # The maximum queue length of the outgoing messages. 出站消息队列最长长度。
+  #	If the queue is full, some message will be dropped. 队列满时将丢弃部分消息。
+  #	The message dropping strategy is described in the document of the persistence/queue.Store interface. 丢弃策略详见 persistence/queue.Store 文档。
   max_queued_messages: 10000
-  # The limits of inflight message length of the outgoing messages.
-  #	Inflight message is also stored in the message queue, so it must be less than or equal to max_queued_messages.
-  #	Inflight message is the QoS 1 or QoS 2 message that has been sent out to a client but not been acknowledged yet.
+  # The limits of inflight message length of the outgoing messages. 在途消息数量限制。
+  #	Inflight message is also stored in the message queue, so it must be less than or equal to max_queued_messages. 在途消息存储于队列中，因此不能超过队列上限。
+  #	Inflight message is the QoS 1 or QoS 2 message that has been sent out to a client but not been acknowledged yet. 指已发出但未确认的 QoS1/2 消息。
   max_inflight: 100
-  # Whether to store QoS 0 message for a offline session.
+  # Whether to store QoS 0 message for a offline session. 是否在离线会话中存储 QoS0 消息。
   queue_qos0_messages: false
-  # The delivery mode. The possible value can be "overlap" or "onlyonce".
-  #	It is possible for a client’s subscriptions to overlap so that a published message might match multiple filters.
-  #	When set to "overlap" , the server will deliver one message for each matching subscription and respecting the subscription’s QoS in each case.
-  #	When set to "onlyonce", the server will deliver the message to the client respecting the maximum QoS of all the matching subscriptions.
+  # The delivery mode. The possible value can be "overlap" or "onlyonce". 消息投递模式，可选 overlap/onlyonce。
+  #	It is possible for a client’s subscriptions to overlap so that a published message might match multiple filters. 当订阅主题重叠时，同一消息可能匹配多条规则。
+  #	When set to "overlap" , the server will deliver one message for each matching subscription and respecting the subscription’s QoS in each case. overlap 模式下为每个订阅单独发送并保持各自 QoS。
+  #	When set to "onlyonce", the server will deliver the message to the client respecting the maximum QoS of all the matching subscriptions. onlyonce 模式下只发送一次，使用匹配订阅的最高 QoS。
   delivery_mode: overlap
-  # Whether to allow a client to connect with empty client id.
+  # Whether to allow a client to connect with empty client id. 是否允许空 client id 连接。
   allow_zero_length_clientid: false
 
 persistence:
-  type: memory  # memory | redis
-  # The redis configuration only take effect when type == redis.
+  type: memory  # memory | redis 持久化类型，可选 memory 或 redis。
+  # The redis configuration only take effect when type == redis. 仅在类型为 redis 时生效。
   redis:
-    # redis server address
-    #addr: "47.115.213.71:6379"
+    # redis server address Redis 服务器地址
+    #addr: "47.115.213.71:6379" 示例 Redis 地址
     addr: "127.0.0.1:6379"
-    # the maximum number of idle connections in the redis connection pool.
+    # the maximum number of idle connections in the redis connection pool. Redis 连接池允许的最大空闲连接数。
     max_idle: 1000
-    # the maximum number of connections allocated by the redis connection pool at a given time.
-    # If zero, there is no limit on the number of connections in the pool.
+    # the maximum number of connections allocated by the redis connection pool at a given time. Redis 连接池同时可分配的最大连接数。
+    # If zero, there is no limit on the number of connections in the pool. 为 0 表示不限制连接数量。
     max_active: 0
-    # the connection idle timeout, connection will be closed after remaining idle for this duration. If the value is zero, then idle connections are not closed.
+    # the connection idle timeout, connection will be closed after remaining idle for this duration. If the value is zero, then idle connections are not closed. 连接空闲超时时间，0 表示不断开空闲连接。
     idle_timeout: 240s
-    #password: "redis2022"
-    # the number of the redis database.
+    #password: "redis2022" Redis 密码示例
+    # the number of the redis database. Redis 数据库编号
     database: 2
 
-# The topic alias manager setting. The topic alias feature is introduced by MQTT V5.
-# This setting is used to control how the broker manage topic alias.
+# The topic alias manager setting. The topic alias feature is introduced by MQTT V5. 主题别名管理器配置，主题别名为 MQTT V5 特性。
+# This setting is used to control how the broker manage topic alias. 用于控制代理如何管理主题别名。
 topic_alias_manager:
-  # Currently, only FIFO strategy is supported.
+  # Currently, only FIFO strategy is supported. 当前仅支持 FIFO 策略。
   type: fifo
 
 plugins:
@@ -118,56 +118,57 @@ plugins:
     path: "/metrics"
     listen_address: ":8082"
   auth:
-    # Password hash type. (plain | md5 | sha256 | bcrypt)
-    # Default to MD5.
+    # Password hash type. (plain | md5 | sha256 | bcrypt) 密码哈希类型。
+    # Default to MD5. 默认 MD5。
     hash: md5
-    # The file to store password. If it is a relative path, it locates in the same directory as the config file.
-    # (e.g: ./gmqtt_password => /etc/gmqtt/gmqtt_password.yml)
-    # Defaults to ./gmqtt_password.yml
+    # The file to store password. If it is a relative path, it locates in the same directory as the config file. 存储密码的文件，相对路径基于配置文件目录。
+    # (e.g: ./gmqtt_password => /etc/gmqtt/gmqtt_password.yml) 示例路径。
+    # Defaults to ./gmqtt_password.yml 默认路径为 ./gmqtt_password.yml。
     password_file: ./gmqtt_password.yml
   federation:
-    # node_name is the unique identifier for the node in the federation. Defaults to hostname.
-    # node_name:
-    # fed_addr is the gRPC server listening address for the federation internal communication. Defaults to :8901
+    # node_name is the unique identifier for the node in the federation. Defaults to hostname. node_name 是联邦内节点的唯一标识，默认为主机名。
+    # node_name: 自定义 node_name 示例
+    # fed_addr is the gRPC server listening address for the federation internal communication. Defaults to :8901 fed_addr 为联邦内部通信的 gRPC 监听地址，默认为 :8901。
     fed_addr: :8901
-    # advertise_fed_addr is used to change the federation gRPC server address that we advertise to other nodes in the cluster.
-    # Defaults to "fed_addr".However, in some cases, there may be a routable address that cannot be bound.
-    # If the port is missing, the default federation port (8901) will be used.
+    # advertise_fed_addr is used to change the federation gRPC server address that we advertise to other nodes in the cluster. advertise_fed_addr 用于对外公告的联邦 gRPC 地址。
+    # Defaults to "fed_addr".However, in some cases, there may be a routable address that cannot be bound. 默认与 fed_addr 相同，用于无法绑定可路由地址的情况。
+    # If the port is missing, the default federation port (8901) will be used. 缺省端口时使用联邦默认端口 8901。
     advertise_fed_addr: :8901
-    # gossip_addr is the address that the gossip will listen on, It is used for both UDP and TCP gossip. Defaults to :8902
+    # gossip_addr is the address that the gossip will listen on, It is used for both UDP and TCP gossip. Defaults to :8902 gossip 协议监听地址，用于 UDP 和 TCP，默认 :8902。
     gossip_addr: :8902
-    # advertise_gossip_addr is used to change the gossip server address that we advertise to other nodes in the cluster.
-    # Defaults to "GossipAddr" or the private IP address of the node if the IP in "GossipAddr" is 0.0.0.0.
-    # If the port is missing, the default gossip port (8902) will be used.
+    # advertise_gossip_addr is used to change the gossip server address that we advertise to other nodes in the cluster. advertise_gossip_addr 为对外公告的 gossip 地址。
+    # Defaults to "GossipAddr" or the private IP address of the node if the IP in "GossipAddr" is 0.0.0.0. 默认等于 gossip_addr，若地址为 0.0.0.0 则使用节点私有 IP。
+    # If the port is missing, the default gossip port (8902) will be used. 缺省端口时使用默认 gossip 端口 8902。
     advertise_gossip_addr: :8902
 
-    # retry_join is the address of other nodes to join upon starting up.
-    # If port is missing, the default gossip port (8902) will be used.
-    #retry_join:
-    #  - 127.0.0.1:8902
+    # retry_join is the address of other nodes to join upon starting up. retry_join 表示启动时要加入的其他节点地址。
+    # If port is missing, the default gossip port (8902) will be used. 未指定端口时使用 8902。
+    #retry_join: 启动时尝试加入的节点列表示例
+    #  - 127.0.0.1:8902 示例节点
 
-    # rejoin_after_leave will be pass to "RejoinAfterLeave" in serf configuration.
-    # It controls our interaction with the snapshot file.
-    # When set to false (default), a leave causes a Serf to not rejoin the cluster until an explicit join is received.
-    # If this is set to true, we ignore the leave, and rejoin the cluster on start.
+    # rejoin_after_leave will be pass to "RejoinAfterLeave" in serf configuration. rejoin_after_leave 对应 Serf 的 RejoinAfterLeave。
+    # It controls our interaction with the snapshot file. 控制与快照文件的交互方式。
+    # When set to false (default), a leave causes a Serf to not rejoin the cluster until an explicit join is received. 设为 false（默认）时，离开后需显式 join 才能回归。
+    # If this is set to true, we ignore the leave, and rejoin the cluster on start. 设为 true 时会忽略 leave，启动时自动重加。
     rejoin_after_leave: false
-    # snapshot_path will be pass to "SnapshotPath" in serf configuration.
+    # snapshot_path will be pass to "SnapshotPath" in serf configuration. snapshot_path 对应 Serf 的 SnapshotPath。
     # When Serf is started with a snapshot,it will attempt to join all the previously known nodes until one
-    # succeeds and will also avoid replaying old user events.
+    # succeeds and will also avoid replaying old user events. 使用快照启动时会尝试加入所有已知节点直到成功，并避免重放历史事件。
     snapshot_path:
 
-# plugin loading orders
+# plugin loading orders 插件加载顺序
 plugin_order:
-  # Uncomment auth to enable authentication.
-  #- auth
-  #- prometheus
-  #- admin
-  #- federation
-  - thingspanel
+  - thingspanel # 启用 ThingsPanel 插件
+  # Uncomment auth to enable authentication. 取消注释 auth 以启用认证。
+  #- auth # 启用认证插件
+  - prometheus # 启用 Prometheus 插件
+  - admin # 启用管理插件
+  #- federation # 启用联邦插件
+  
 log:
-  level: debug # debug | info | warn | error
-  format: text # json | text
-  # whether to dump MQTT packet in debug level
+  level: debug # debug | info | warn | error 日志级别
+  format: text # json | text 日志格式
+  # whether to dump MQTT packet in debug level 是否在 debug 级别输出 MQTT 报文
   dump_packet: false
 
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"gopkg.in/redis.v5"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -155,11 +156,11 @@ func GetRedisForJsondata(key string, dest interface{}) error {
 func GetDeviceByVoucher(voucher string) (*Device, error) {
 	var device Device
 	deviceId, _ := GetStr(voucher)
-	Log.Debug("缓存的deviceId值: " + deviceId)
 	if deviceId == "" {
+		Log.Debug("【缓存未命中】", zap.String("voucher", voucher))
 		result := db.Model(&Device{}).Where("voucher = ?", voucher).First(&device)
 		if result.Error != nil {
-			Log.Info(result.Error.Error())
+			Log.Info("【获取设备信息】失败", zap.String("voucher", voucher), zap.Error(result.Error))
 			return nil, result.Error
 		}
 		// 修改token的时候，需要删除旧的token
