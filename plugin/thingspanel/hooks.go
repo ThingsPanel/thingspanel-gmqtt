@@ -159,15 +159,15 @@ func (t *Thingspanel) OnSubscribeWrapper(pre server.OnSubscribe) server.OnSubscr
 				if dev, derr := GetDeviceById(deviceId); derr == nil && dev != nil && dev.DeviceConfigID != nil {
 					svc := NewTopicMapService()
 					if svc.AllowDownSubscribe(ctx, *dev.DeviceConfigID, the_sub) {
-						Log.Info("订阅通过（自定义下行映射）: " + the_sub)
+						Log.Info("【自定义订阅】通过（自定义下行映射）", zap.String("topic", the_sub))
 						return nil
 					}
 				}
 			}
-			Log.Warn("订阅权限验证失败: " + the_sub)
+			Log.Warn("【订阅】权限验证失败", zap.String("topic", the_sub), zap.String("client_id", client.ClientOptions().ClientID), zap.Error(err))
 			return errors.New("permission denied")
 		}
-		Log.Info("订阅权限验证成功: " + the_sub)
+		Log.Info("【订阅】权限验证成功", zap.String("topic", the_sub), zap.String("client_id", client.ClientOptions().ClientID))
 		return nil
 	}
 }
@@ -190,9 +190,9 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 					svc := NewTopicMapService()
 					if src, matched := svc.ResolveDownSource(ctx, *dev.DeviceConfigID, topic, deviceNumber); matched && src != "" {
 						if err := DefaultMqttClient.SendData(src, req.Message.Payload); err != nil {
-							Log.Warn("下行额外转发失败: " + err.Error())
+							Log.Warn("【下行自定义主题额外转发】失败", zap.String("topic", topic), zap.String("client_id", client.ClientOptions().ClientID), zap.Error(err))
 						} else {
-							Log.Info("下行额外转发成功: " + src)
+							Log.Info("【下行自定义主题额外转发】成功", zap.String("topic", topic), zap.String("client_id", client.ClientOptions().ClientID), zap.String("target", src))
 						}
 					}
 				}
@@ -223,21 +223,25 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 				newMsgMap["values"] = req.Message.Payload
 				newMsgJson, _ := json.Marshal(newMsgMap)
 				if err := DefaultMqttClient.SendData(target, newMsgJson); err != nil {
-					return err
+					Log.Warn("【上行自定义主题转发】失败", zap.String("topic", the_pub), zap.String("client_id", client.ClientOptions().ClientID), zap.Error(err))
+					return nil
 				}
+				Log.Info("【上行自定义主题转发】成功", zap.String("topic", the_pub), zap.String("client_id", client.ClientOptions().ClientID), zap.String("target", target))
+				// 丢弃原消息
 				return errors.New("message is discarded;")
 			}
 		}
 
 		// 验证设备的发布权限；若失败直接拒绝
 		if !util.ValidateTopic(the_pub) {
+			Log.Warn("【上行】权限验证失败", zap.String("topic", the_pub), zap.String("client_id", client.ClientOptions().ClientID))
 			return errors.New("permission denied")
 		}
 
 		// 后三位是/up的主题直接方放行【Mindjoy-MW】
-		if the_pub[len(the_pub)-3:] == "/up" {
-			return nil
-		}
+		// if the_pub[len(the_pub)-3:] == "/up" {
+		// 	return nil
+		// }
 
 		// 消息重写
 		newMsgMap := make(map[string]interface{})
