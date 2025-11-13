@@ -2,13 +2,18 @@
 # Gmqtt [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)  ![Build Status](https://github.com/DrmagicE/gmqtt/actions/workflows/test.yml/badge.svg) [![codecov](https://codecov.io/gh/DrmagicE/gmqtt/branch/master/graph/badge.svg)](https://codecov.io/gh/DrmagicE/gmqtt) [![Go Report Card](https://goreportcard.com/badge/github.com/DrmagicE/gmqtt)](https://goreportcard.com/report/github.com/DrmagicE/gmqtt)
 
 # Project state
-This project is less maintained due to personal reasons. Here are some information for people who want to use this project.
 
-Gmqtt was used in production and worked well. The production environment was serving hundreds of clients(or maybe thousands or 10 thousands now), and 
-each client published QoS 1 message to report their state every 15 seconds. The subscribers on the cloud would store those state into persist backend.
-All clients were non-persistent session and using v3.1.1 protocol.
 
-It is suggested to evaluate and test carefully before running in your production environment.
+This project is now **maintained by the ThingsPanel team**.
+We **continuously fix bugs**, **address and merge community-submitted issues and PRs**, and ensure the project remains stable and up to date.
+
+**Usage Information:**
+The project is currently used in **over one hundred thousand devices or projects**.
+In production environments, each client publishes a **QoS 1** message every **5 seconds** to report its state.
+Subscribers in the cloud store these state updates into a persistent backend.
+All clients use **non-persistent sessions** and the **MQTT v3.1.1 protocol**.
+
+We still recommend **careful evaluation and testing before deploying this project in production**.
 
 
 # Features
