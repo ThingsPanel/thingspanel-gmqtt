@@ -8,8 +8,8 @@ This project is now **maintained by the ThingsPanel team**.
 We **continuously fix bugs**, **address and merge community-submitted issues and PRs**, and ensure the project remains stable and up to date.
 
 **Usage Information:**
-The project is currently used in **over one hundred thousand devices or projects**.
-In production environments, each client publishes a **QoS 1** message every **5 seconds** to report its state.
+The project has been stably running in production environments with **over 100,000 devices**.
+Each client publishes a **QoS 1** message every **5 seconds** to report its state, and cloud subscribers persist these state updates.
 Subscribers in the cloud store these state updates into a persistent backend.
 All clients use **non-persistent sessions** and the **MQTT v3.1.1 protocol**.
 
