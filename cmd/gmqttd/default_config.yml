@@ -70,7 +70,7 @@ mqtt:
   # The highest QOS level permitted for a Publish. 最大发布 QoS。
   maximum_qos: 2
   # Whether the server supports retained messages. 是否支持保留消息。
-  retain_available: false
+  retain_available: true
   # The maximum queue length of the outgoing messages. 出站消息队列最长长度。
   #	If the queue is full, some message will be dropped. 队列满时将丢弃部分消息。
   #	The message dropping strategy is described in the document of the persistence/queue.Store interface. 丢弃策略详见 persistence/queue.Store 文档。
