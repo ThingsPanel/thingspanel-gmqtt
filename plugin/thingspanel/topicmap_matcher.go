@@ -85,8 +85,8 @@ func applyTarget(target string, _ string) string {
 	return target
 }
 
-// compileTargetPattern is identical to compileSourcePattern for our purposes:
-// it builds a full-match regex from a target topic pattern.
+// compileTargetPattern is identical to compileSourcePattern for our purposes: 编译目标主题模式
+// it builds a full-match regex from a target topic pattern. 编译成正则表达式后，可以匹配规范化下行目标主题，例如：devices/telemetry/control/123456
 func compileTargetPattern(target string) (*regexp.Regexp, bool) {
 	// Disallow '#'
 	if strings.Contains(target, "#") {
@@ -103,8 +103,8 @@ func compileTargetPattern(target string) (*regexp.Regexp, bool) {
 	return rx, true
 }
 
-// renderTopicFromTemplate replaces variables like {device_number} in template using vars map.
-// Unknown variables are left as-is; caller should ensure the result is a concrete topic.
+// renderTopicFromTemplate replaces variables like {device_number} in template using vars map. 渲染主题模板
+// Unknown variables are left as-is; caller should ensure the result is a concrete topic. 未知变量保持原样；调用者应确保结果是一个具体的主题。
 func renderTopicFromTemplate(template string, vars map[string]string) string {
 	out := template
 	for k, v := range vars {

@@ -181,7 +181,7 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 			zap.String("payload", string(req.Message.Payload)))
 		// root用户和插件用户直接转发
 		if username == "root" || username == "plugin" {
-			RootMessageForwardWrapper(req.Message.Topic, req.Message.Payload, false)
+			// RootMessageForwardWrapper(req.Message.Topic, req.Message.Payload, false)
 			// root平台下发：若主题属于规范“下行主题”，提取设备号并按映射额外转发到设备原始主题
 			topic := req.Message.Topic
 			if deviceNumber, ok := TryExtractDeviceNumberFromNormalized(topic); ok && deviceNumber != "" {

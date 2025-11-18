@@ -3,6 +3,8 @@ package thingspanel
 import (
 	"context"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 type TopicMapService struct{}
@@ -49,26 +51,35 @@ func (s *TopicMapService) AllowDownSubscribe(ctx context.Context, deviceConfigID
 	return false
 }
 
-// ResolveDownSource returns a concrete original device topic (source_topic rendered)
-// when platform publishes to a normalized down target topic.
-// variables currently support: device_number
+// ResolveDownSource returns a concrete original device topic (source_topic rendered) 解析下行原始主题
+// when platform publishes to a normalized down target topic. 平台发布到规范化下行目标主题时，解析下行原始主题
+// variables currently support: device_number 目前支持的变量：device_number
 func (s *TopicMapService) ResolveDownSource(ctx context.Context, deviceConfigID string, normalizedTarget string, deviceNumber string) (string, bool) {
+	// 获取设备配置ID对应的下行自定义主题映射
 	mappings, err := GetMappingsWithCache(ctx, deviceConfigID, DirectionDown)
 	if err != nil || len(mappings) == 0 {
 		return "", false
 	}
+	// 遍历下行自定义主题映射，逐条尝试匹配规范化下行目标主题
 	for _, m := range mappings {
+		// 编译目标主题模式，例如：devices/telemetry/control/{device_number} 编译成正则表达式
+		// 编译成正则表达式后，可以匹配规范化下行目标主题，例如：devices/telemetry/control/123456
 		rx, ok := compileTargetPattern(m.TargetTopic)
+		// 如果编译失败，则跳过
 		if !ok {
+			Log.Debug("【下行自定义主题额外转发】编译目标主题模式失败", zap.String("target_topic", m.TargetTopic))
 			continue
 		}
-		if rx.MatchString(normalizedTarget) {
+		matched := rx.MatchString(normalizedTarget)
+		if matched {
 			vars := map[string]string{
 				"device_number": deviceNumber,
 			}
 			src := renderTopicFromTemplate(m.SourceTopic, vars)
-			// If '+' remains, we cannot derive a concrete target. Skip such rules.
+			Log.Debug("【下行自定义主题额外转发】渲染后的原始主题", zap.String("rendered_source", src))
+			// If '+' remains, we cannot derive a concrete target. Skip such rules. 如果存在+，则无法推导出具体的主题，跳过此类规则。
 			if strings.Contains(src, "+") || strings.Contains(src, "#") {
+				Log.Debug("【下行自定义主题额外转发】渲染后的主题包含通配符，跳过", zap.String("rendered_source", src))
 				continue
 			}
 			return src, true
