@@ -19,6 +19,7 @@ type DeviceTopicMapping struct {
 	Direction      string     `gorm:"column:direction"`
 	SourceTopic    string     `gorm:"column:source_topic"`
 	TargetTopic    string     `gorm:"column:target_topic"`
+	DataIdentifier *string    `gorm:"column:data_identifier"`
 	Priority       int        `gorm:"column:priority"`
 	Enabled        bool       `gorm:"column:enabled"`
 	Description    *string    `gorm:"column:description"`

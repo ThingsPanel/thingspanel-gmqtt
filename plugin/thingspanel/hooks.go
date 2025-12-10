@@ -187,8 +187,8 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 			if deviceNumber, ok := TryExtractDeviceNumberFromNormalized(topic); ok && deviceNumber != "" {
 				if dev, derr := GetDeviceByNumber(deviceNumber); derr == nil && dev != nil && dev.DeviceConfigID != nil {
 					svc := NewTopicMapService()
-					if src, matched := svc.ResolveDownSource(ctx, *dev.DeviceConfigID, topic, deviceNumber); matched && src != "" {
-						if err := DefaultMqttClient.SendData(src, req.Message.Payload); err != nil {
+					if src, outPayload, matched := svc.ResolveDownSource(ctx, *dev.DeviceConfigID, topic, deviceNumber, req.Message.Payload); matched && src != "" {
+						if err := DefaultMqttClient.SendData(src, outPayload); err != nil {
 							Log.Warn("【下行自定义主题额外转发】失败", zap.String("topic", topic), zap.String("client_id", client.ClientOptions().ClientID), zap.Error(err))
 						} else {
 							Log.Info("【下行自定义主题额外转发】成功", zap.String("topic", topic), zap.String("client_id", client.ClientOptions().ClientID), zap.String("target", src))
