@@ -22,7 +22,7 @@ func TestWriteDeviceDebugLog_NoConfigNoop(t *testing.T) {
 	devDebugNow = func() time.Time { return time.Unix(1000, 0) }
 	t.Cleanup(func() { devDebugNow = time.Now })
 
-	wrote, err := WriteDeviceDebugLog("dev1", DeviceDebugLogEntry{Event: "publish", Direction: "up", Result: "ok"})
+	wrote, err := WriteDeviceDebugLog("dev1", DeviceDebugLogEntry{Action: "publish", Direction: "up", Outcome: "ok"})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -65,13 +65,15 @@ func TestWriteDeviceDebugLog_TruncateAndTrimAndTTL(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		_, err := WriteDeviceDebugLog(deviceID, DeviceDebugLogEntry{
-			Event:     "publish",
+			Action:    "publish",
 			Direction: "up",
-			ClientID:  "c1",
-			Username:  "u1",
-			Topic:     "t",
 			Payload:   "abcdefghij",
-			Result:    "ok",
+			Outcome:   "ok",
+			Meta: map[string]interface{}{
+				"client_id": "c1",
+				"username":  "u1",
+				"topic":     "t",
+			},
 		})
 		if err != nil {
 			t.Fatalf("write log: %v", err)
@@ -94,8 +96,8 @@ func TestWriteDeviceDebugLog_TruncateAndTrimAndTTL(t *testing.T) {
 	if entry.Payload != "abcde" {
 		t.Fatalf("expected payload truncated, got %q", entry.Payload)
 	}
-	if entry.Extra == nil || entry.Extra["payload_truncated"] != true {
-		t.Fatalf("expected payload_truncated=true, got %#v", entry.Extra)
+	if entry.Meta == nil || entry.Meta["payload_truncated"] != true {
+		t.Fatalf("expected payload_truncated=true, got %#v", entry.Meta)
 	}
 
 	ttl := s.TTL(logKey)
@@ -131,7 +133,7 @@ func TestWriteDeviceDebugLog_ExpiredConfigNoop(t *testing.T) {
 		t.Fatalf("set cfg: %v", err)
 	}
 
-	wrote, err := WriteDeviceDebugLog(deviceID, DeviceDebugLogEntry{Event: "auth", Direction: "na", Result: "denied"})
+	wrote, err := WriteDeviceDebugLog(deviceID, DeviceDebugLogEntry{Action: "auth", Direction: "na", Outcome: "deny"})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}

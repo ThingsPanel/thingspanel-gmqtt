@@ -22,18 +22,18 @@ type DeviceDebugConfig struct {
 	PayloadMaxBytes int   `json:"payload_max_bytes"`
 }
 
+// DeviceDebugLogEntry is a protocol-agnostic device interaction log entry.
+// Protocol-private fields should be placed into Meta.
 type DeviceDebugLogEntry struct {
 	Ts        string                 `json:"ts"`
-	Event     string                 `json:"event"`     // auth|subscribe|publish|forward
-	Direction string                 `json:"direction"` // up|down|na
 	DeviceID  string                 `json:"device_id"`
-	ClientID  string                 `json:"client_id,omitempty"`
-	Username  string                 `json:"username,omitempty"`
-	Topic     string                 `json:"topic,omitempty"`
-	Payload   string                 `json:"payload,omitempty"`
-	Result    string                 `json:"result"` // ok|denied|error|discarded
-	Error     string                 `json:"error,omitempty"`
-	Extra     map[string]interface{} `json:"extra,omitempty"`
+	Protocol  string                 `json:"protocol,omitempty"` // mqtt|modbus|tcp|...
+	Direction string                 `json:"direction"`          // up|down|na
+	Action    string                 `json:"action"`             // connect|auth|publish|read|write|...
+	Outcome   string                 `json:"outcome,omitempty"`  // ok|deny|error|drop
+	Error     string                 `json:"error,omitempty"`    // error detail if any
+	Payload   string                 `json:"payload,omitempty"`  // optional, may be truncated
+	Meta      map[string]interface{} `json:"meta,omitempty"`     // protocol-private fields
 }
 
 func devDebugCfgKey(deviceID string) string {
@@ -92,10 +92,10 @@ func WriteDeviceDebugLog(deviceID string, entry DeviceDebugLogEntry) (bool, erro
 		entry.Payload = ""
 	} else if len(entry.Payload) > cfg.PayloadMaxBytes {
 		entry.Payload = entry.Payload[:cfg.PayloadMaxBytes]
-		if entry.Extra == nil {
-			entry.Extra = map[string]interface{}{}
+		if entry.Meta == nil {
+			entry.Meta = map[string]interface{}{}
 		}
-		entry.Extra["payload_truncated"] = true
+		entry.Meta["payload_truncated"] = true
 	}
 
 	raw, err := json.Marshal(entry)
