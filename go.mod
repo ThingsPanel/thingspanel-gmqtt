@@ -3,6 +3,7 @@ module github.com/DrmagicE/gmqtt
 go 1.14
 
 require (
+	github.com/alicebob/miniredis/v2 v2.34.0
 	github.com/eclipse/paho.mqtt.golang v1.4.2
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.3

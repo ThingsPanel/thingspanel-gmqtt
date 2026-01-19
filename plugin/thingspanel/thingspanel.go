@@ -6,61 +6,65 @@ import (
 	"log"
 	"net/http"
 	"strings"
-
-	"go.uber.org/zap"
+	"sync"
 
 	"github.com/DrmagicE/gmqtt/config"
 	"github.com/DrmagicE/gmqtt/server"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 var _ server.Plugin = (*Thingspanel)(nil)
 
 const Name = "thingspanel"
 
+var (
+	runtimeInitOnce sync.Once
+	runtimeInitErr  error
+	Log             *zap.Logger
+)
+
 func init() {
-	log.Println("系统配置文件初始化...")
+	server.RegisterPlugin(Name, New)
+	config.RegisterDefaultPluginConfig(Name, &DefaultConfig)
+}
+
+func runtimeInit() error {
+	log.Println("thingspanel: initializing config...")
 	viper.SetEnvPrefix("GMQTT")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.SetConfigName("thingspanel")
 	viper.SetConfigType("yml")
 	viper.AddConfigPath(".")
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("failed to read configuration file: %s", err))
+	if err := viper.ReadInConfig(); err != nil {
+		return fmt.Errorf("thingspanel: failed to read configuration file: %w", err)
 	}
-	log.Println("系统配置文件初始化完成")
-	Init() //启动数据库和redis
+
+	Init() // init database & redis
 	go DefaultMqttClient.MqttInit()
-	server.RegisterPlugin(Name, New)
-	config.RegisterDefaultPluginConfig(Name, &DefaultConfig)
+	return nil
 }
 
 func New(config config.Config) (server.Plugin, error) {
-	//panic("implement me")
 	return &Thingspanel{}, nil
 }
 
-var Log *zap.Logger
-
-type Thingspanel struct {
-}
+type Thingspanel struct{}
 
 func (t *Thingspanel) Load(service server.Server) error {
 	Log = server.LoggerWithField(zap.String("plugin", Name))
-	return nil
+	runtimeInitOnce.Do(func() {
+		runtimeInitErr = runtimeInit()
+	})
+	return runtimeInitErr
 }
 
-func (t *Thingspanel) Unload() error {
-	return nil
-}
+func (t *Thingspanel) Unload() error { return nil }
 
-func (t *Thingspanel) Name() string {
-	return Name
-}
+func (t *Thingspanel) Name() string { return Name }
 
-// 不用
+// Deprecated: not used.
 func (t *Thingspanel) UpdateStatus(accessToken string, status string) {
 	url := "/api/device/status"
 	method := "POST"

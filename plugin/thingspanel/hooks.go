@@ -53,7 +53,6 @@ func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicA
 		// ... 处理本插件的鉴权逻辑
 		Log.Info("【鉴权】开始",
 			zap.String("username", string(req.Connect.Username)),
-			zap.String("password", string(req.Connect.Password)),
 			zap.String("client_id", string(req.Connect.ClientID)))
 
 		// voucher是一个字符串，如果没有密码，voucher就是{"username":"xxx"}，如果有密码，voucher就是{"username":"xxx","password":"xxx"}
@@ -69,11 +68,34 @@ func (t *Thingspanel) OnBasicAuthWrapper(pre server.OnBasicAuth) server.OnBasicA
 			Log.Warn("【鉴权】失败",
 				zap.String("client_id", string(req.Connect.ClientID)),
 				zap.Error(err))
+			// å¤±è´¥æ—¶å°½åŠ›å®šä½è®¾å¤‡IDï¼ˆä¸è®°å½•æ˜Žæ–‡å¯†ç ï¼‰ï¼Œä»¥ä¾¿å…¥åº“è°ƒè¯•æ—¥å¿—
+			if string(req.Connect.Username) != "root" && string(req.Connect.Username) != "plugin" && string(req.Connect.Password) != "" {
+				fallbackVoucher := fmt.Sprintf(`{"username":"%s"}`, string(req.Connect.Username))
+				if dev, derr := GetDeviceByVoucher(fallbackVoucher); derr == nil && dev != nil {
+					_, _ = WriteDeviceDebugLog(dev.ID, DeviceDebugLogEntry{
+						Event:     "auth",
+						Direction: "na",
+						DeviceID:  dev.ID,
+						ClientID:  string(req.Connect.ClientID),
+						Username:  string(req.Connect.Username),
+						Result:    "denied",
+						Error:     err.Error(),
+					})
+				}
+			}
 			return err
 		} else {
 			Log.Info("【鉴权】通过",
 				zap.String("client_id", string(req.Connect.ClientID)),
 				zap.String("device_id", device.ID))
+			_, _ = WriteDeviceDebugLog(device.ID, DeviceDebugLogEntry{
+				Event:     "auth",
+				Direction: "na",
+				DeviceID:  device.ID,
+				ClientID:  string(req.Connect.ClientID),
+				Username:  string(req.Connect.Username),
+				Result:    "ok",
+			})
 		}
 		// mqtt客户端id必须唯一
 		err = SetStr("mqtt_clinet_id_"+string(req.Connect.ClientID), device.ID, 0)
@@ -151,6 +173,7 @@ func (t *Thingspanel) OnSubscribeWrapper(pre server.OnSubscribe) server.OnSubscr
 		}
 
 		the_sub := req.Subscribe.Topics[0].Name
+		deviceID, _ := deviceIDFromClient(client.ClientOptions().ClientID)
 		// 验证设备的订阅权限；若失败，尝试下行自定义映射放行
 		if !util.ValidateSubTopic(the_sub) {
 			// 获取设备与配置ID
@@ -160,12 +183,49 @@ func (t *Thingspanel) OnSubscribeWrapper(pre server.OnSubscribe) server.OnSubscr
 					svc := NewTopicMapService()
 					if svc.AllowDownSubscribe(ctx, *dev.DeviceConfigID, the_sub) {
 						Log.Info("【自定义订阅】通过（自定义下行映射）", zap.String("topic", the_sub))
+						if deviceId != "" {
+							_, _ = WriteDeviceDebugLog(deviceId, DeviceDebugLogEntry{
+								Event:     "subscribe",
+								Direction: "na",
+								DeviceID:  deviceId,
+								ClientID:  client.ClientOptions().ClientID,
+								Username:  username,
+								Topic:     the_sub,
+								Result:    "ok",
+								Extra: map[string]interface{}{
+									"custom_mapping_allowed": true,
+								},
+							})
+						}
 						return nil
 					}
 				}
 			}
 			Log.Warn("【订阅】权限验证失败", zap.String("topic", the_sub), zap.String("client_id", client.ClientOptions().ClientID), zap.Error(err))
+			if deviceId != "" {
+				_, _ = WriteDeviceDebugLog(deviceId, DeviceDebugLogEntry{
+					Event:     "subscribe",
+					Direction: "na",
+					DeviceID:  deviceId,
+					ClientID:  client.ClientOptions().ClientID,
+					Username:  username,
+					Topic:     the_sub,
+					Result:    "denied",
+					Error:     "permission denied",
+				})
+			}
 			return errors.New("permission denied")
+		}
+		if deviceID != "" {
+			_, _ = WriteDeviceDebugLog(deviceID, DeviceDebugLogEntry{
+				Event:     "subscribe",
+				Direction: "na",
+				DeviceID:  deviceID,
+				ClientID:  client.ClientOptions().ClientID,
+				Username:  username,
+				Topic:     the_sub,
+				Result:    "ok",
+			})
 		}
 		return nil
 	}
@@ -188,10 +248,45 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 				if dev, derr := GetDeviceByNumber(deviceNumber); derr == nil && dev != nil && dev.DeviceConfigID != nil {
 					svc := NewTopicMapService()
 					if src, outPayload, matched := svc.ResolveDownSource(ctx, *dev.DeviceConfigID, topic, deviceNumber, req.Message.Payload); matched && src != "" {
+						forwardSucceeded := true
 						if err := DefaultMqttClient.SendData(src, outPayload); err != nil {
+							forwardSucceeded = false
 							Log.Warn("【下行自定义主题额外转发】失败", zap.String("topic", topic), zap.String("client_id", client.ClientOptions().ClientID), zap.Error(err))
+							_, _ = WriteDeviceDebugLog(dev.ID, DeviceDebugLogEntry{
+								Event:     "forward",
+								Direction: "down",
+								DeviceID:  dev.ID,
+								ClientID:  client.ClientOptions().ClientID,
+								Username:  username,
+								Topic:     topic,
+								Payload:   string(req.Message.Payload),
+								Result:    "error",
+								Error:     err.Error(),
+								Extra: map[string]interface{}{
+									"mapped":       true,
+									"target_topic": topic,
+									"source_topic": src,
+								},
+							})
 						} else {
 							Log.Info("【下行自定义主题额外转发】成功", zap.String("topic", topic), zap.String("client_id", client.ClientOptions().ClientID), zap.String("target", src))
+						}
+						if forwardSucceeded {
+							_, _ = WriteDeviceDebugLog(dev.ID, DeviceDebugLogEntry{
+								Event:     "forward",
+								Direction: "down",
+								DeviceID:  dev.ID,
+								ClientID:  client.ClientOptions().ClientID,
+								Username:  username,
+								Topic:     topic,
+								Payload:   string(req.Message.Payload),
+								Result:    "ok",
+								Extra: map[string]interface{}{
+									"mapped":       true,
+									"target_topic": topic,
+									"source_topic": src,
+								},
+							})
 						}
 					}
 				}
@@ -200,6 +295,7 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 		}
 
 		the_pub := string(req.Publish.TopicName)
+		originalPayload := string(req.Message.Payload)
 
 		// 获取设备与配置ID（用于自定义映射）
 		deviceId, err := GetStr("mqtt_clinet_id_" + client.ClientOptions().ClientID)
@@ -222,11 +318,44 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 				newMsgMap["values"] = req.Message.Payload
 				newMsgJson, _ := json.Marshal(newMsgMap)
 				if err := DefaultMqttClient.SendData(target, newMsgJson); err != nil {
+					if deviceId != "" {
+						_, _ = WriteDeviceDebugLog(deviceId, DeviceDebugLogEntry{
+							Event:     "publish",
+							Direction: "up",
+							DeviceID:  deviceId,
+							ClientID:  client.ClientOptions().ClientID,
+							Username:  username,
+							Topic:     the_pub,
+							Payload:   originalPayload,
+							Result:    "error",
+							Error:     err.Error(),
+							Extra: map[string]interface{}{
+								"mapped":       true,
+								"target_topic": target,
+							},
+						})
+					}
 					Log.Warn("【上行自定义主题转发】失败", zap.String("topic", the_pub), zap.String("client_id", client.ClientOptions().ClientID), zap.Error(err))
 					return nil
 				}
 				Log.Info("【上行自定义主题转发】成功", zap.String("topic", the_pub), zap.String("client_id", client.ClientOptions().ClientID), zap.String("target", target))
 				// 丢弃原消息
+				if deviceId != "" {
+					_, _ = WriteDeviceDebugLog(deviceId, DeviceDebugLogEntry{
+						Event:     "publish",
+						Direction: "up",
+						DeviceID:  deviceId,
+						ClientID:  client.ClientOptions().ClientID,
+						Username:  username,
+						Topic:     the_pub,
+						Payload:   originalPayload,
+						Result:    "discarded",
+						Extra: map[string]interface{}{
+							"mapped":       true,
+							"target_topic": target,
+						},
+					})
+				}
 				return errors.New("message is discarded;")
 			} else {
 				Log.Debug("【上行】未匹配到自定义主题", zap.String("topic", the_pub), zap.String("client_id", client.ClientOptions().ClientID))
@@ -235,6 +364,19 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 
 		// 验证设备的发布权限；若失败直接拒绝
 		if !util.ValidateTopic(the_pub) {
+			if deviceId != "" {
+				_, _ = WriteDeviceDebugLog(deviceId, DeviceDebugLogEntry{
+					Event:     "publish",
+					Direction: "up",
+					DeviceID:  deviceId,
+					ClientID:  client.ClientOptions().ClientID,
+					Username:  username,
+					Topic:     the_pub,
+					Payload:   originalPayload,
+					Result:    "denied",
+					Error:     "permission denied",
+				})
+			}
 			Log.Warn("【上行】权限验证失败", zap.String("topic", the_pub), zap.String("client_id", client.ClientOptions().ClientID))
 			return errors.New("permission denied")
 		}
@@ -250,6 +392,18 @@ func (t *Thingspanel) OnMsgArrivedWrapper(pre server.OnMsgArrived) server.OnMsgA
 		newMsgMap["values"] = req.Message.Payload
 		newMsgJson, _ := json.Marshal(newMsgMap)
 		req.Message.Payload = newMsgJson
+		if deviceId != "" {
+			_, _ = WriteDeviceDebugLog(deviceId, DeviceDebugLogEntry{
+				Event:     "publish",
+				Direction: "up",
+				DeviceID:  deviceId,
+				ClientID:  client.ClientOptions().ClientID,
+				Username:  username,
+				Topic:     the_pub,
+				Payload:   originalPayload,
+				Result:    "ok",
+			})
+		}
 		return nil
 	}
 }
