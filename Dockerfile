@@ -3,7 +3,7 @@ FROM golang:alpine AS builder
 WORKDIR $GOPATH/src/app
 ADD . ./
 ENV GO111MODULE on
-ENV GOPROXY="https://goproxy.io"
+ENV GOPROXY="https://goproxy.cn,direct"
 WORKDIR $GOPATH/src/app/cmd/gmqttd
 RUN go build
 
