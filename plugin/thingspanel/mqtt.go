@@ -33,15 +33,13 @@ func (c *MqttClient) MqttInit() error {
 	opts.SetConnectRetryInterval(1 * time.Second)   // 初始连接重试间隔
 	opts.SetMaxReconnectInterval(200 * time.Second) // 丢失连接后的最大重试间隔
 
-	opts.SetOrderMatters(false) //设置消息的顺序
-	//opts.OnConnectionLost = connectLostHandler
+	opts.SetOrderMatters(true) // 保证消息有序，设备上下线状态必须有序
+
 	opts.SetOnConnectHandler(func(c mqtt.Client) {
 		fmt.Println("Mqtt客户端已连接")
 	})
 	opts.SetClientID("thingspanel-gmqtt-client")
 	c.Client = mqtt.NewClient(opts)
-	// 等待连接成功
-	// 等待连接成功
 	for {
 		if token := c.Client.Connect(); token.Wait() && token.Error() != nil {
 			fmt.Println("Mqtt客户端连接失败(", addr, ")，等待重连...")
@@ -59,11 +57,8 @@ func (c *MqttClient) SendData(topic string, data []byte) error {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println("【SendData】异常捕捉：", err)
-			return
 		}
 	}()
-	//go func() {
-	//Log.Info("检查MqttClIent连接状态...")
 	if !c.IsFlag {
 		i := 1
 		for {
@@ -75,15 +70,15 @@ func (c *MqttClient) SendData(topic string, data []byte) error {
 			i++
 		}
 	}
+	// 同步发布：等待消息被 broker 确认后再返回，保证同一设备的状态消息严格有序
 	token := c.Client.Publish(topic, 1, false, string(data))
-	go func() {
-		if !token.WaitTimeout(15 * time.Second) {
-			Log.Warn("【消息发布超时】", zap.String("topic", topic), zap.String("data", string(data)))
-			return
-		}
-		if err := token.Error(); err != nil {
-			Log.Warn("【消息发布失败】", zap.String("topic", topic), zap.String("data", string(data)), zap.Error(err))
-		}
-	}()
+	if !token.WaitTimeout(15 * time.Second) {
+		Log.Warn("【消息发布超时】", zap.String("topic", topic), zap.String("data", string(data)))
+		return fmt.Errorf("publish timeout for topic: %s", topic)
+	}
+	if err := token.Error(); err != nil {
+		Log.Warn("【消息发布失败】", zap.String("topic", topic), zap.String("data", string(data)), zap.Error(err))
+		return err
+	}
 	return nil
 }
